@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Manage team</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+            }
+            img {
+                max-width: 300px;
+                height: auto;
+                margin-bottom: 20px;
+            }
+            .button-container {
+                display: flex;
+                gap: 10px; /* Space between buttons */
+                justify-content: center;
+                margin-top: 20px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                color: #fff;
+                background-color: #007bff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            button.approve {
+                background-color: #28a745;
+            }
+            button.approve:hover {
+                background-color: #218838;
+            }
+            form {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                margin-top: 20px;
+            }
+            input {
+                padding: 10px;
+                font-size: 16px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                width: 300px;
+            }
+        </style>
+    </head>
+    <body>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Let%27s_Connect_logo.svg/300px-Let%27s_Connect_logo.svg.png" alt="Let's Connect Logo">
+        <h1>Manage team</h1>
+        <form method="POST" name="approve_user" action="{% url 'manage_view' %}">
+            {% csrf_token %}
+            <input list="usernames" name="username" placeholder="Search for a username" required>
+            <datalist id="usernames">
+                {% for user in users %}
+                    <option value="{{ user.username }}">
+                {% endfor %}
+            </datalist>
+        </form>
+        <div class="button-container">
+            <button class="approve" form="approve_user" type="submit">Approve User</button>
+            <button onclick="window.location.href='/'">Home</button>
+        </div>
+    </body>
+</html>

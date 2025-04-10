@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Home</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+            }
+            img {
+                max-width: 300px;
+                height: auto;
+                margin-bottom: 20px;
+            }
+            .button-container {
+                display: flex;
+                gap: 10px; /* Space between buttons */
+                justify-content: center;
+                margin-top: 20px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                color: #fff;
+                background-color: #007bff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            button.logout {
+                background-color: #dc3545;
+            }
+            button.logout:hover {
+                background-color: #a71d2a;
+            }
+            button.manage-enrollments {
+                background-color: #28a745;
+            }
+            button.manage-enrollments:hover {
+                background-color: #218838;
+            }
+            button.manage-users {
+                background-color: #6f42c1;
+            }
+            button.manage-users:hover {
+                background-color: #5a32b1;
+            }
+        </style>
+    </head>
+    <body>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Let%27s_Connect_logo.svg/300px-Let%27s_Connect_logo.svg.png" alt="Let's Connect Logo">
+        <h1>Welcome to Let's Connect!</h1>
+        <p>This page is restricted for management only.</p>
+        {% if user.is_authenticated %}
+            <p>Hello, {{ user.username }}!</p>
+            {% if user.is_approved %}
+                <div class="button-container">
+                    <button class="logout" onclick="location.href='/logout/'">Logout</button>
+                    <button class="manage-enrollments" onclick="location.href='/enrollments/'">Manage Enrollments</button>
+                    <button class="manage-users" onclick="location.href='/manage/'">Manage Users</button>
+                </div>
+            {% else %}
+                <p style="color: red;">You are not approved to access this page. Please check if you logged in with the correct account.</p>
+                <div class="button-container">
+                    <button class="logout" onclick="location.href='/logout/'">Logout</button>
+                </div>
+            {% endif %}
+        {% else %}
+            <p>Please log in to access the management features.</p>
+            <div class="button-container">
+                <button onclick="location.href='/login/'">Login</button>
+            </div>
+        {% endif %}
+    </body>
+</html>

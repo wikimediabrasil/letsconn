@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Enrollments</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+            }
+            img {
+                max-width: 300px;
+                height: auto;
+                margin-bottom: 20px;
+            }
+            .button-container {
+                display: flex;
+                gap: 10px; /* Space between buttons */
+                justify-content: center;
+                margin-top: 20px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                color: #fff;
+                background-color: #007bff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+        </style>
+        <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/css/jquery.dataTables.min.css" />
+        <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons-dt/2.3.6/buttons.dataTables.min.css" />
+        <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-responsive-dt/2.4.1/responsive.dataTables.min.css" />
+        <script 
+            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/jquery/3.7.0/jquery.min.js" 
+            integrity="sha384-NXgwF8Kv9SSAr+jemKKcbvQsz+teULH/a5UNJvZc6kP47hZgl62M1vGnw6gHQhb1" 
+            crossorigin="anonymous"></script>
+        <script 
+            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net/2.1.1/jquery.dataTables.min.js" 
+            integrity="sha384-FL5V3MGBdvjK1/lXuDlPXHHDAjM6lXTKHQH1rBXPSF63sIN2p6/49GfrqXI9N/t7" 
+            crossorigin="anonymous"></script>
+        <script 
+            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-responsive/2.4.1/dataTables.responsive.min.js" 
+            integrity="sha384-iQC83CKNYyann9W2gqpKB/p3aitJrLa4MIcxGclC61mNprEqXuheYiCE7JSJnRO9" 
+            crossorigin="anonymous"></script>
+        <script 
+            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons/2.3.6/js/dataTables.buttons.min.js" 
+            integrity="sha384-jbU1hH+4p38WsOp+7JWEb6ztIpXa7u9npGVDNGEj4w9AUujc3X2E4aTDZ+xo1PgU" 
+            crossorigin="anonymous"></script>
+        <script 
+            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons/2.3.6/js/buttons.colVis.min.js" 
+            integrity="sha384-h/SRPFzc2+BE+XfOqlAqiHb43fnY8jzXhQ0fI1JBfgrjbxUokMr9To2eLbSWEt1g" 
+            crossorigin="anonymous"></script>
+        <style>
+            .loader {
+                border: 16px solid #f3f3f3;
+                border-radius: 50%;
+                border-top: 16px solid #000000;
+                width: 120px;
+                height: 120px;
+                margin: auto;
+                animation: spin 2s linear infinite;
+            }
+        
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        
+            #myTable {
+                display: none;
+                font-size: small;
+            }
+        </style>
+    </head>
+    <body>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Let%27s_Connect_logo.svg/300px-Let%27s_Connect_logo.svg.png" alt="Let's Connect Logo">
+        <div class="loader" id="loader"></div>
+        <div class="button-container">
+            <button onclick="window.location.href='/csv/'">Download CSV</button>
+            <button onclick="window.location.href='/'">Home</button>
+        </div>
+        <table id="myTable" class="display responsive" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Enrollment ID</th>
+                    <th>Username</th>
+                    <th>Full Name</th>
+                    <th>E-mail</th>
+                    <th>Role</th>
+                    <th>Area</th>
+                    <th>Gender</th>
+                    <th>Age</th>
+                    <th>Time</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for enrollment in enrollments %}
+                    <tr>
+                        <td>{{ enrollment.id }}</td>
+                        <td>{{ enrollment.username }}</td>
+                        <td>{{ enrollment.full_name }}</td>
+                        <td>{{ enrollment.email }}</td>
+                        <td>{{ enrollment.role }}</td>
+                        <td>{{ enrollment.area }}</td>
+                        <td>{{ enrollment.gender }}</td>
+                        <td>{{ enrollment.age }}</td>
+                        <td>{{ enrollment.time }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <script type="text/javascript">
+            $(document).ready(function() {
+                $('#loader').hide(); // Hide the loader initially
+                $('#myTable').show();
+                $('#myTable').DataTable( {
+                    responsive: true,
+                    columnDefs: [
+                        {
+                            targets: "_all",
+                            className: 'dt-body-center'
+                        }
+                    ]
+                } );
+            } );
+        </script>
