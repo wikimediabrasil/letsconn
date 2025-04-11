@@ -9,9 +9,10 @@ from credentials.models import CustomUser
 import jwt
 import csv
 from enrollments.models import Enrollment
+from django.conf import settings
 
 
-PUBLIC_KEY = serialization.load_pem_public_key(open(Path(__file__).resolve().parent.parent / 'public_key.pem', 'rb').read())
+PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + '/public_key.pem', 'rb').read())
 
 @require_GET
 def home_view(request):
