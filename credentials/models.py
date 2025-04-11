@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin, UserM
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=150, unique=True)
-    email = models.EmailField(unique=True)
+    email = models.EmailField()
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     is_approved = models.BooleanField(default=False)
