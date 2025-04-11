@@ -1,6 +1,7 @@
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import csrf_exempt
 from cryptography.hazmat.primitives import serialization
 from django.contrib.auth.decorators import login_required
 from functools import wraps
@@ -112,6 +113,8 @@ def manage_view(request):
         'approved_users': approved_users
     })
 
+@csrf_exempt
+@require_POST
 def receive_enrollment_data(request):
     """
     Handle the enrollment data submission.
@@ -125,10 +128,10 @@ def receive_enrollment_data(request):
         decoded = jwt.decode(token, PUBLIC_KEY, algorithms=['RS256'])
         data = decoded.get('data', {})
         if not data:
-            return JsonResponse({'error': 'Invalid token'}, status=400)
+            return JsonResponse({'error': 'Invalid token'}, status=401)
 
         # Process the enrollment data here
-        Enrollment.objects.create(
+        enrollment = Enrollment.objects.create(
             user=data.get('user'),
             full_name=data.get('full_name'),
             email=data.get('email'),
@@ -138,6 +141,20 @@ def receive_enrollment_data(request):
             age=data.get('age'),
             timestamp=data.get('timestamp')
         )
-        return JsonResponse({'message': 'Enrollment data received successfully'}, status=200)
+        
+        # Generate confirmation token
+        confirmation_id = str(uuid.uuid4())
+        confirmation_code = hashlib.sha256(
+            f"{enrollment.id}-{confirmation_id}".encode()
+        ).hexdigest()
+
+        # Optionally store the confirmation ID in the model (for reverse lookup/debug)
+        enrollment.confirmation_code = confirmation_code
+        enrollment.save(update_fields=["confirmation_code"])
+
+        return JsonResponse({
+            'message': 'Enrollment data received successfully',
+            'confirmation': confirmation_code
+        }, status=200)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)

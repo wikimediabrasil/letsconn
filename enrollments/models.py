@@ -14,3 +14,4 @@ class Enrollment(models.Model):
     gender = models.CharField(max_length=10)
     age = models.IntegerField()
     timestamp = models.DateTimeField()
+    confirmation_code = models.CharField(max_length=64, blank=True, null=True)
