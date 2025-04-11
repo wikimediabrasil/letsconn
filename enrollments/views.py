@@ -1,16 +1,28 @@
-from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
-from django.views.decorators.http import require_GET, require_POST
-from django.views.decorators.csrf import csrf_exempt
-from cryptography.hazmat.primitives import serialization
-from django.contrib.auth.decorators import login_required
+# Standard library imports
+import csv
+import json
+import uuid
+import hashlib
+from datetime import datetime
 from functools import wraps
 from pathlib import Path
-from credentials.models import CustomUser
+
+# Third-party imports
 import jwt
-import csv
-from enrollments.models import Enrollment
+from cryptography.hazmat.primitives import serialization
+
+# Django imports
 from django.conf import settings
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponse
+from django.shortcuts import render
+from django.utils.timezone import make_aware
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
+
+# Local application imports
+from credentials.models import CustomUser
+from enrollments.models import Enrollment
 
 
 PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + '/public_key.pem', 'rb').read())
@@ -31,7 +43,7 @@ def approved_required(view_func):
         if request.user.is_approved:
             return view_func(request, *args, **kwargs)
         else:
-            return render(request, 'not_approved.html')
+            return render(request, 'home.html')
     return _wrapped_view
 
 @require_GET
@@ -41,7 +53,8 @@ def enrollments_view(request):
     """
     Render the enrollment page.
     """
-    return render(request, 'enrollments.html')
+    enrollments = Enrollment.objects.all()
+    return render(request, 'enrollments.html', {'enrollments': enrollments})
 
 @require_GET
 @login_required
@@ -58,7 +71,7 @@ def csv_view(request):
 
     enrollments = Enrollment.objects.all()
     for enrollment in enrollments:
-        writer.writerow([enrollment.user.username, enrollment.full_name, enrollment.email,
+        writer.writerow([enrollment.user, enrollment.full_name, enrollment.email,
                          enrollment.role, enrollment.area, enrollment.gender,
                          enrollment.age, enrollment.timestamp])
     return response
@@ -119,14 +132,16 @@ def receive_enrollment_data(request):
     """
     Handle the enrollment data submission.
     """
-    auth_header = request.headers.get('Authorization', '')
-    if not auth_header.startswith('Bearer '):
-        return JsonResponse({'error': 'Unauthorized'}, status=401)
-
-    token = auth_header.split(' ')[1]
     try:
-        decoded = jwt.decode(token, PUBLIC_KEY, algorithms=['RS256'])
-        data = decoded.get('data', {})
+        token = json.loads(request.body).get('token', None)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    if not token:
+        return JsonResponse({'error': 'Token is required'}, status=400)
+
+    try:
+        data = jwt.decode(token, PUBLIC_KEY, algorithms=['RS256'])
         if not data:
             return JsonResponse({'error': 'Invalid token'}, status=401)
 
@@ -139,7 +154,7 @@ def receive_enrollment_data(request):
             area=data.get('area'),
             gender=data.get('gender'),
             age=data.get('age'),
-            timestamp=data.get('timestamp')
+            timestamp=make_aware(datetime.fromtimestamp(data.get('timestamp')))
         )
         
         # Generate confirmation token

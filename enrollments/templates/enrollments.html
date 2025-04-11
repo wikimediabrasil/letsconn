@@ -107,14 +107,14 @@
                 {% for enrollment in enrollments %}
                     <tr>
                         <td>{{ enrollment.id }}</td>
-                        <td>{{ enrollment.username }}</td>
+                        <td>{{ enrollment.user }}</td>
                         <td>{{ enrollment.full_name }}</td>
                         <td>{{ enrollment.email }}</td>
                         <td>{{ enrollment.role }}</td>
                         <td>{{ enrollment.area }}</td>
                         <td>{{ enrollment.gender }}</td>
                         <td>{{ enrollment.age }}</td>
-                        <td>{{ enrollment.time }}</td>
+                        <td>{{ enrollment.timestamp }}</td>
                     </tr>
                 {% endfor %}
             </tbody>
