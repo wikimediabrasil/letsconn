@@ -68,20 +68,49 @@ def manage_view(request):
     """
     Render the manage page.
     """
-    users = CustomUser.objects.filter(is_approved=False)
+    unapproved_users = CustomUser.objects.filter(is_approved=False)
+    approved_users = CustomUser.objects.filter(is_approved=True).exclude(id=request.user.id)  # Exclude the current user
+
     if request.method == 'POST':
+        action = request.POST.get('action')
         username = request.POST.get('username')
+
         if not username:
-            return render(request, 'manage.html', {'users': users, 'error': 'Username is required'})
+            return render(request, 'manage.html', {
+                'unapproved_users': unapproved_users,
+                'approved_users': approved_users,
+                'error': 'Username is required'
+            })
+
         try:
             user = CustomUser.objects.get(username=username)
-            user.is_approved = True
-            user.save()
-            return render(request, 'manage.html', {'users': users, 'success': 'User approved successfully'})
+            if action == 'approve':
+                user.is_approved = True
+                user.save()
+                success_message = f"User '{username}' has been approved."
+            elif action == 'unapprove':
+                user.is_approved = False
+                user.save()
+                success_message = f"User '{username}' has been unapproved."
+            else:
+                success_message = None
+
+            return render(request, 'manage.html', {
+                'unapproved_users': unapproved_users,
+                'approved_users': approved_users,
+                'success': success_message
+            })
         except CustomUser.DoesNotExist:
-            return render(request, 'manage.html', {'users': users, 'error': 'User not found'})
-    else:
-        return render(request, 'manage.html', {'users': users})
+            return render(request, 'manage.html', {
+                'unapproved_users': unapproved_users,
+                'approved_users': approved_users,
+                'error': f"User '{username}' not found."
+            })
+
+    return render(request, 'manage.html', {
+        'unapproved_users': unapproved_users,
+        'approved_users': approved_users
+    })
 
 def receive_enrollment_data(request):
     """
