@@ -4,14 +4,8 @@ from django.db import models
 
 class Enrollment(models.Model):
     """
-    Model representing an enrollment in the platform.
+    Model representing an enrollment in the platform with dynamic fields.
     """
-    user = models.CharField(max_length=150)
-    full_name = models.CharField(max_length=255)
-    email = models.EmailField()
-    role = models.CharField(max_length=10)
-    area = models.CharField(max_length=50)
-    gender = models.CharField(max_length=10)
-    age = models.IntegerField()
-    timestamp = models.DateTimeField()
+    data = models.JSONField()
+    timestamp = models.DateTimeField(auto_now_add=True)
     confirmation_code = models.CharField(max_length=64, blank=True, null=True)

@@ -25,7 +25,7 @@ from credentials.models import CustomUser
 from enrollments.models import Enrollment
 
 
-PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + '/public_key.pem', 'rb').read())
+PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + 'public_key.pem', 'rb').read())
 
 @require_GET
 def home_view(request):
@@ -54,26 +54,51 @@ def enrollments_view(request):
     Render the enrollment page.
     """
     enrollments = Enrollment.objects.all()
-    return render(request, 'enrollments.html', {'enrollments': enrollments})
+    all_keys = set()
+    for enrollment in enrollments:
+        all_keys.update(enrollment.data.keys())
+
+    all_keys.discard("timestamp")
+    all_keys.discard("nonce")
+    all_keys = sorted(all_keys, key=lambda x: (x != "user", x))
+
+    return render(request, 'enrollments.html', {
+        'enrollments': enrollments,
+        'all_enrollment_keys': all_keys
+    })
 
 @require_GET
 @login_required
 @approved_required
 def csv_view(request):
     """
-    Render the CSV page.
+    Render the CSV page with dynamic fields.
     """
     response = HttpResponse(content_type='text/csv; charset=utf-8',
                             headers={'Content-Disposition': 'attachment; filename="enrollment_data.csv"'})
     writer = csv.writer(response)
 
-    writer.writerow(['Username', 'Full Name', 'Email', 'Role', 'Area', 'Gender', 'Age', 'Timestamp'])
-
+    # Get all unique keys from the data field
     enrollments = Enrollment.objects.all()
+    keys = set()
     for enrollment in enrollments:
-        writer.writerow([enrollment.user, enrollment.full_name, enrollment.email,
-                         enrollment.role, enrollment.area, enrollment.gender,
-                         enrollment.age, enrollment.timestamp])
+        keys.update(enrollment.data.keys())
+
+    keys.discard("timestamp")
+    keys.discard("nonce")
+    keys = sorted(keys, key=lambda x: (x != "user", x))
+
+    # Write the header row
+    writer.writerow(['Enrollment ID'] + list(keys) + ['Timestamp'])
+
+    # Write the data rows
+    for enrollment in enrollments:
+        row = [enrollment.id]
+        for key in keys:
+            row.append(enrollment.data.get(key, ''))  # Use empty string if key is missing
+        row.append(enrollment.timestamp)
+        writer.writerow(row)
+
     return response
 
 @login_required
@@ -130,7 +155,7 @@ def manage_view(request):
 @require_POST
 def receive_enrollment_data(request):
     """
-    Handle the enrollment data submission.
+    Handle the enrollment data submission with dynamic fields.
     """
     try:
         token = json.loads(request.body).get('token', None)
@@ -145,25 +170,16 @@ def receive_enrollment_data(request):
         if not data:
             return JsonResponse({'error': 'Invalid token'}, status=401)
 
-        # Process the enrollment data here
-        enrollment = Enrollment.objects.create(
-            user=data.get('user'),
-            full_name=data.get('full_name'),
-            email=data.get('email'),
-            role=data.get('role'),
-            area=data.get('area'),
-            gender=data.get('gender'),
-            age=data.get('age'),
-            timestamp=make_aware(datetime.fromtimestamp(data.get('timestamp')))
-        )
-        
+        # Store the entire payload dynamically
+        enrollment = Enrollment.objects.create(data=data)
+
         # Generate confirmation token
         confirmation_id = str(uuid.uuid4())
         confirmation_code = hashlib.sha256(
             f"{enrollment.id}-{confirmation_id}".encode()
         ).hexdigest()
 
-        # Optionally store the confirmation ID in the model (for reverse lookup/debug)
+        # Store the confirmation code
         enrollment.confirmation_code = confirmation_code
         enrollment.save(update_fields=["confirmation_code"])
 
