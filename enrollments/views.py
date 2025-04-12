@@ -25,7 +25,7 @@ from credentials.models import CustomUser
 from enrollments.models import Enrollment
 
 
-PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + 'public_key.pem', 'rb').read())
+PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + ('/' if settings.HOME else '') + 'public_key.pem', 'rb').read())
 
 @require_GET
 def home_view(request):

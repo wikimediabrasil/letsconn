@@ -16,3 +16,4 @@ media/
 pytest.ini
 coverage.xml
 static_files/
+public_key.pem
