@@ -3,6 +3,7 @@ import csv
 import json
 import uuid
 import hashlib
+import requests
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
