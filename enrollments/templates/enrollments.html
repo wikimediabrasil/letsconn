@@ -37,6 +37,12 @@
             button:hover {
                 background-color: #0056b3;
             }
+            button.csv {
+                background-color: #28a745;
+            }
+            button.csv:hover {
+                background-color: #218838;
+            }
         </style>
         <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/css/jquery.dataTables.min.css" />
         <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons-dt/2.3.6/buttons.dataTables.min.css" />
@@ -87,7 +93,7 @@
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Let%27s_Connect_logo.svg/300px-Let%27s_Connect_logo.svg.png" alt="Let's Connect Logo">
         <div class="loader" id="loader"></div>
         <div class="button-container">
-            <button onclick="window.location.href='/csv/'">Download CSV</button>
+            <button class="csv" onclick="window.location.href='/csv/'">Download CSV</button>
             <button onclick="window.location.href='/'">Home</button>
         </div>
         <table id="myTable" class="display responsive" style="width:100%">
@@ -99,7 +105,10 @@
                             <th>{{ key|capfirst|underscore }}</th>
                         {% endfor %}
                     {% endwith %}
-                    <th>Server time</th>
+                    <th>Enrollment time</th>
+                    <th>Joined Date</th>
+                    <th>Last Update</th>
+                    <th>Last Login</th>
                 </tr>
             </thead>
             <tbody>
@@ -112,12 +121,40 @@
                             {% endfor %}
                         {% endwith %}
                         <td>{{ enrollment.timestamp }}</td>
+                        <td class="joined-date"></td>
+                        <td class="last-update"></td>
+                        <td class="last-login"></td>
                     </tr>
                 {% endfor %}
             </tbody>
         </table>
         <script type="text/javascript">
             $(document).ready(function() {
+                $('#myTable tbody tr').each(function() {
+                    const row = $(this);
+                    const username = row.find('td:nth-child(2)').text().trim(); // Get the username from the second column
+    
+                    if (username) {
+                        // Fetch data from the API for the current username
+                        const apiUrl = `/proxy/?query=user__username=${username}`;
+                        fetch(apiUrl)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.results && data.results.length > 0) {
+                                    const userData = data.results[0];
+                                    const joinedDate = new Date(userData.user.date_joined).toLocaleString();
+                                    const lastUpdate = new Date(userData.last_update).toLocaleString();
+                                    const lastLogin = new Date(userData.last_login).toLocaleString();
+    
+                                    // Populate the corresponding cells in the row
+                                    row.find('.joined-date').text(joinedDate);
+                                    row.find('.last-update').text(lastUpdate);
+                                    row.find('.last-login').text(lastLogin);
+                                }
+                            })
+                            .catch(error => console.error(`Error fetching data for ${username}:`, error));
+                    }
+                });
                 $('#loader').hide(); // Hide the loader initially
                 $('#myTable').show();
                 $('#myTable').DataTable( {
@@ -130,6 +167,9 @@
                     ]
                 } );
             } );
+
+            // Iterate over each row in the table
+            
         </script>
     </body>
 </html>
