@@ -95,6 +95,7 @@
         <div class="button-container">
             <button class="csv" onclick="window.location.href='/csv/'">Download CSV</button>
             <button onclick="window.location.href='/'">Home</button>
+            <button id="loadUserDataBtn">Load User Data</button>
         </div>
         <table id="myTable" class="display responsive" style="width:100%">
             <thead>
@@ -130,46 +131,72 @@
         </table>
         <script type="text/javascript">
             $(document).ready(function() {
-                $('#myTable tbody tr').each(function() {
-                    const row = $(this);
-                    const username = row.find('td:nth-child(2)').text().trim(); // Get the username from the second column
-    
-                    if (username) {
-                        // Fetch data from the API for the current username
-                        const apiUrl = `/proxy/?query=user__username=${username}`;
-                        fetch(apiUrl)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.results && data.results.length > 0) {
-                                    const userData = data.results[0];
-                                    const joinedDate = new Date(userData.user.date_joined).toLocaleString();
-                                    const lastUpdate = new Date(userData.last_update).toLocaleString();
-                                    const lastLogin = new Date(userData.last_login).toLocaleString();
-    
-                                    // Populate the corresponding cells in the row
-                                    row.find('.joined-date').text(joinedDate);
-                                    row.find('.last-update').text(lastUpdate);
-                                    row.find('.last-login').text(lastLogin);
-                                }
-                            })
-                            .catch(error => console.error(`Error fetching data for ${username}:`, error));
-                    }
-                });
-                $('#loader').hide(); // Hide the loader initially
-                $('#myTable').show();
-                $('#myTable').DataTable( {
+                // Hide extra columns initially
+                $('#myTable th.user-extra-col, #myTable td.user-extra-col').hide();
+                // Enable moment.js date sorting for DataTables
+                let table = $('#myTable').DataTable({
                     responsive: true,
+                    scrollY: '50vh',
+                    scrollCollapse: true,
                     columnDefs: [
                         {
                             targets: "_all",
-                            className: 'dt-body-center'
+                            className: 'dt-body-center',
                         }
                     ]
-                } );
-            } );
+                });
+                let colcount = table.columns().count();
+                table.columns([colcount - 3, colcount - 2, colcount - 1]).visible(false);
+                $('#loader').hide();
+                $('#myTable').show();
 
-            // Iterate over each row in the table
+                $('#loadUserDataBtn').on('click', function() {
+                    $('#loader').show();
+                    $('.dataTables_wrapper').hide();
+                    table.columns([colcount - 3, colcount - 2, colcount - 1]).visible(true);
+                    const userCache = {};
+                    const usernamesSet = table.column(1).data().toArray();
+                    const usernames = [...new Set(usernamesSet.filter(username => username.trim() !== ''))];
             
+
+                    // Fetch user data for each unique username
+                    const fetchPromises = usernames.map(username => {
+                        return fetch(`https://letsconn.toolforge.org/proxy/?query=user__username=${username}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.results && data.results.length > 0) {
+                                    const user = data.results[0];
+                                    const joinedDate = new Date(user.user.date_joined).toLocaleString();
+                                    const lastUpdate = new Date(user.last_update).toLocaleString();
+                                    const lastLogin = new Date(user.last_login).toLocaleString();
+                                    userCache[username] = { joinedDate, lastUpdate, lastLogin };
+                                } else {
+                                    userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '' };
+                                }
+                            })
+                            .catch(error => {
+                                console.error(`Error fetching data for ${username}:`, error);
+                                userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '' };
+                            });
+                    });
+                    Promise.all(fetchPromises).then(function() {
+                        // Update all rows with the fetched data, using DataTables API
+                        table.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                            const data = this.data();
+                            const username = data[1]; // Assuming the username is in the second column
+                            const userData = userCache[username] || { joinedDate: '', lastUpdate: '', lastLogin: '' };
+                            this.node().querySelector('.joined-date').innerText = userData.joinedDate;
+                            this.node().querySelector('.last-update').innerText = userData.lastUpdate;
+                            this.node().querySelector('.last-login').innerText = userData.lastLogin;
+                            this.invalidate();
+                        });
+                        table.draw();
+                        // Show extra columns
+                        $('#loader').hide();
+                        $('.dataTables_wrapper').show();
+                    });
+                });
+            });
         </script>
     </body>
 </html>
