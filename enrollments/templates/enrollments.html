@@ -168,13 +168,23 @@
                     return response.json();
                 }
 
-                $('#loadUserDataBtn').on('click', function() {
+                $('#loadUserDataBtn').on('click', async function() {
                     $('#loader').show();
                     $('.dataTables_wrapper').hide();
-                    table.columns([colcount - 3, colcount - 2, colcount - 1]).visible(true);
+                    table.columns([
+                        colcount - 7,
+                        colcount - 6,
+                        colcount - 5,
+                        colcount - 4,
+                        colcount - 3,
+                        colcount - 2,
+                        colcount - 1
+                    ]).visible(true);
+
                     const userCache = {};
                     const usernamesSet = table.column(1).data().toArray();
                     const usernames = [...new Set(usernamesSet.filter(username => username.trim() !== ''))];
+
                     const territoryData = await fetchList('territory');
                     const affiliationData = await fetchList('affiliation');
                     const languageData = await fetchList('language');
@@ -198,7 +208,7 @@
                                     const languageNames = (user.language || [])
                                         .map(lang => {
                                             const name = languageData[lang.id] || 'Unknown';
-                                            return `${name} (Proficiency: ${proficiency})`;
+                                            return `${name} (Proficiency: ${lang.proficiency || 'Unknown'})`;
                                         })
                                         .join(', ');
                                     userCache[username] = { joinedDate, lastUpdate, lastLogin, territory: territoryNames, affiliation: affiliationNames, language: languageNames };
@@ -211,26 +221,28 @@
                                 userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '', territory: '', affiliation: '', language: '' };
                             });
                     });
-                    Promise.all(fetchPromises).then(function() {
-                        // Update all rows with the fetched data, using DataTables API
-                        table.rows().every(function(rowIdx, tableLoop, rowLoop) {
-                            const data = this.data();
-                            const username = data[1]; // Assuming the username is in the second column
-                            const userData = userCache[username] || { joinedDate: '', lastUpdate: '', lastLogin: '' };
-                            this.node().querySelector('.joined-date').innerText = userData.joinedDate;
-                            this.node().querySelector('.last-update').innerText = userData.lastUpdate;
-                            this.node().querySelector('.last-login').innerText = userData.lastLogin;
-                            this.node().querySelector('.territory').innerText = userData.territory;
-                            this.node().querySelector('.affiliation').innerText = userData.affiliation;
-                            this.node().querySelector('.language').innerText = userData.language;
-                            this.invalidate();
-                        });
-                        table.draw();
-                        table.columns.adjust();
-                        // Show extra columns
-                        $('#loader').hide();
-                        $('.dataTables_wrapper').show();
+
+                    await Promise.all(fetchPromises);
+
+                    // Update all rows with the fetched data, using DataTables API
+                    table.rows().every(function(rowIdx, tableLoop, rowLoop) {
+                        const data = this.data();
+                        const username = data[1]; // Assuming the username is in the second column
+                        const userData = userCache[username] || { joinedDate: '', lastUpdate: '', lastLogin: '' };
+                        this.node().querySelector('.joined-date').innerText = userData.joinedDate;
+                        this.node().querySelector('.last-update').innerText = userData.lastUpdate;
+                        this.node().querySelector('.last-login').innerText = userData.lastLogin;
+                        this.node().querySelector('.territory').innerText = userData.territory;
+                        this.node().querySelector('.affiliation').innerText = userData.affiliation;
+                        this.node().querySelector('.language').innerText = userData.language;
+                        this.invalidate();
                     });
+
+                    table.draw();
+                    table.columns.adjust();
+                    // Show extra columns
+                    $('#loader').hide();
+                    $('.dataTables_wrapper').show();
                 });
             });
         </script>
