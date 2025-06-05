@@ -54,12 +54,17 @@ def proxy_api_request(request):
     """
     Proxy API request to the external service.
     """
-    query = request.GET.get('query')
-    if not query:
-        return JsonResponse({'error': 'Query parameter is required'}, status=400)
+    query = request.GET.get('query', '')
+    items = request.GET.get('item', '')
+    if not query and not items:
+        return JsonResponse({'error': 'Query or item parameter is required'}, status=400)
 
-    api_url = f"https://capx-backend.toolforge.org/users/?{query}"
-    response = requests.get(api_url)
+    if query:
+        api_url = f"https://capx-backend.toolforge.org/users/?{query}"
+        response = requests.get(api_url)
+    elif items:
+        api_url = f"https://capx-backend.toolforge.org/list/?{items}"
+        response = requests.get(api_url)
 
     if response.status_code == 200:
         return JsonResponse(response.json())

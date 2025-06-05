@@ -122,6 +122,10 @@
                             {% endfor %}
                         {% endwith %}
                         <td>{{ enrollment.timestamp }}</td>
+                        <td class="territory"></td>
+                        <td class="affiliation"></td>
+                        <td class="language"></td>
+                        <td class="is-manager"></td>
                         <td class="joined-date"></td>
                         <td class="last-update"></td>
                         <td class="last-login"></td>
@@ -146,9 +150,23 @@
                     ]
                 });
                 let colcount = table.columns().count();
-                table.columns([colcount - 3, colcount - 2, colcount - 1]).visible(false);
+                table.columns([
+                    colcount - 7,
+                    colcount - 6,
+                    colcount - 5,
+                    colcount - 4,
+                    colcount - 3, 
+                    colcount - 2, 
+                    colcount - 1
+                ]).visible(false);
                 $('#loader').hide();
                 $('#myTable').show();
+
+                // Function to fetch list data from the API
+                async function fetchList(type) {
+                    const response = await fetch(`https://letsconn.toolforge.org/proxy/?list=${type}`);
+                    return response.json();
+                }
 
                 $('#loadUserDataBtn').on('click', function() {
                     $('#loader').show();
@@ -157,7 +175,9 @@
                     const userCache = {};
                     const usernamesSet = table.column(1).data().toArray();
                     const usernames = [...new Set(usernamesSet.filter(username => username.trim() !== ''))];
-            
+                    const territoryData = await fetchList('territory');
+                    const affiliationData = await fetchList('affiliation');
+                    const languageData = await fetchList('language');
 
                     // Fetch user data for each unique username
                     const fetchPromises = usernames.map(username => {
@@ -169,14 +189,26 @@
                                     const joinedDate = new Date(user.user.date_joined).toLocaleString();
                                     const lastUpdate = new Date(user.last_update).toLocaleString();
                                     const lastLogin = new Date(user.last_login).toLocaleString();
-                                    userCache[username] = { joinedDate, lastUpdate, lastLogin };
+                                    const territoryNames = (user.territory || [])
+                                                .map(id => territoryData[id] || 'Unknown')
+                                                .join(', ');
+                                    const affiliationNames = (user.affiliation || [])
+                                                .map(id => affiliationData[id] || 'Unknown')
+                                                .join(', ');
+                                    const languageNames = (user.language || [])
+                                        .map(lang => {
+                                            const name = languageData[lang.id] || 'Unknown';
+                                            return `${name} (Proficiency: ${proficiency})`;
+                                        })
+                                        .join(', ');
+                                    userCache[username] = { joinedDate, lastUpdate, lastLogin, territory: territoryNames, affiliation: affiliationNames, language: languageNames };
                                 } else {
-                                    userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '' };
+                                    userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '', territory: '', affiliation: '', language: '' };
                                 }
                             })
                             .catch(error => {
                                 console.error(`Error fetching data for ${username}:`, error);
-                                userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '' };
+                                userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '', territory: '', affiliation: '', language: '' };
                             });
                     });
                     Promise.all(fetchPromises).then(function() {
@@ -188,6 +220,9 @@
                             this.node().querySelector('.joined-date').innerText = userData.joinedDate;
                             this.node().querySelector('.last-update').innerText = userData.lastUpdate;
                             this.node().querySelector('.last-login').innerText = userData.lastLogin;
+                            this.node().querySelector('.territory').innerText = userData.territory;
+                            this.node().querySelector('.affiliation').innerText = userData.affiliation;
+                            this.node().querySelector('.language').innerText = userData.language;
                             this.invalidate();
                         });
                         table.draw();
