@@ -63,7 +63,7 @@ def proxy_api_request(request):
         api_url = f"https://capx-backend.toolforge.org/users/?{query}"
         response = requests.get(api_url)
     elif items:
-        api_url = f"https://capx-backend.toolforge.org/list/?{items}"
+        api_url = f"https://capx-backend.toolforge.org/list/{items}/"
         response = requests.get(api_url)
 
     if response.status_code == 200:

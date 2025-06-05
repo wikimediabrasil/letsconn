@@ -168,7 +168,7 @@
 
                 // Function to fetch list data from the API
                 async function fetchList(type) {
-                    const response = await fetch(`https://letsconn.toolforge.org/proxy/?list=${type}`);
+                    const response = await fetch(`https://letsconn.toolforge.org/proxy/?item=${type}`);
                     return response.json();
                 }
 
