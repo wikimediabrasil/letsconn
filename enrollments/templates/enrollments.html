@@ -163,12 +163,12 @@
                 $('#myTable').show();
 
                 // Function to fetch list data from the API
-                async function fetchList(type) {
-                    const response = await fetch(`https://letsconn.toolforge.org/proxy/?list=${type}`);
+                function fetchList(type) {
+                    const response = fetch(`https://letsconn.toolforge.org/proxy/?list=${type}`);
                     return response.json();
                 }
 
-                $('#loadUserDataBtn').on('click', async function() {
+                $('#loadUserDataBtn').on('click', function() {
                     $('#loader').show();
                     $('.dataTables_wrapper').hide();
                     table.columns([
@@ -185,9 +185,9 @@
                     const usernamesSet = table.column(1).data().toArray();
                     const usernames = [...new Set(usernamesSet.filter(username => username.trim() !== ''))];
 
-                    const territoryData = await fetchList('territory');
-                    const affiliationData = await fetchList('affiliation');
-                    const languageData = await fetchList('language');
+                    const territoryData = fetchList('territory');
+                    const affiliationData = fetchList('affiliation');
+                    const languageData = fetchList('language');
 
                     // Fetch user data for each unique username
                     const fetchPromises = usernames.map(username => {
@@ -222,7 +222,7 @@
                             });
                     });
 
-                    await Promise.all(fetchPromises);
+                    Promise.all(fetchPromises);
 
                     // Update all rows with the fetched data, using DataTables API
                     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
