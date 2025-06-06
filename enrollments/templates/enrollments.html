@@ -215,7 +215,7 @@
                                     const languageNames = (user.language || [])
                                         .map(lang => {
                                             const name = languageData[lang.id] || 'Unknown';
-                                            return `${name} (Proficiency: ${lang.proficiency || 'Unknown'})`;
+                                            return `${name} (${lang.proficiency || '?'})`;
                                         })
                                         .join(', ');
                                     userCache[username] = { joinedDate, lastUpdate, lastLogin, territory: territoryNames, affiliation: affiliationNames, manager: managerNames, language: languageNames };
@@ -242,14 +242,15 @@
                         this.node().querySelector('.territory').innerText = userData.territory;
                         this.node().querySelector('.affiliation').innerText = userData.affiliation;
                         this.node().querySelector('.language').innerText = userData.language;
+                        this.node().querySelector('.manager').innerText = userData.manager;
                         this.invalidate();
                     });
 
                     table.draw();
-                    table.columns.adjust();
                     // Show extra columns
                     $('#loader').hide();
                     $('.dataTables_wrapper').show();
+                    table.columns.adjust();
                 });
             });
         </script>
