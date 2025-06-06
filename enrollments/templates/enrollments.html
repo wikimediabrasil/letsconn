@@ -30,9 +30,9 @@
             }
             .button-container {
                 display: flex;
-                gap: 10px; /* Space between buttons */
+                gap: 10px;
                 justify-content: center;
-                margin-top: 20px;
+                margin: 20px;
             }
             button {
                 padding: 10px 20px;
@@ -273,13 +273,13 @@
                 });
 
                 $('#downloadCsvBtn').on('click', function() {
-                    const rows = [];
-                    const headers = table.columns().header().toArray().map(header => $(header).text().trim());
+                    const rows = ["SEP=,"]; // Start with a separator for CSV
+                    const headers = table.columns().header().toArray().map(header => `"${$(header).text().trim().replace(/"/g, '""')}"`);
                     rows.push(headers);
 
                     table.rows().every(function() {
                         const rowData = this.data();
-                        rows.push(rowData.map(cell => cell.trim()));
+                        rows.push(rowData.map(cell => `"${(cell ? cell.toString().trim().replace(/"/g, '""') : '')}"`));
                     });
 
                     const csvContent = rows.map(e => e.join(",")).join("\n");
