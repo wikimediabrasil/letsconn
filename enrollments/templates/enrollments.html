@@ -106,12 +106,12 @@
     </head>
     <body>
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Let%27s_Connect_logo.svg/300px-Let%27s_Connect_logo.svg.png" alt="Let's Connect Logo">
-        <div class="loader" id="loader"></div>
         <div class="button-container">
             <button class="csv" id="downloadCsvBtn">Download CSV</button>
             <button onclick="window.location.href='/'">Home</button>
             <button class="load" id="loadUserDataBtn">Load User Data</button>
         </div>
+        <div class="loader" id="loader"></div>
         <div class="table-container">
             <table id="myTable" class="display responsive" style="width:80%">
                 <thead>
@@ -191,7 +191,7 @@
 
                 $('#loadUserDataBtn').on('click', async function() {
                     $('#loader').show();
-                    $('.dataTables_wrapper').hide();
+                    $('.table-container').hide();
                     table.columns([
                         colcount - 7,
                         colcount - 6,
@@ -266,14 +266,16 @@
                     table.draw();
                     // Show extra columns
                     $('#loader').hide();
-                    $('.dataTables_wrapper').show();
+                    $('.table-container').show();
                     table.columns.adjust();
                     table.responsive.recalc();
                     table.columns.adjust();
                 });
 
                 $('#downloadCsvBtn').on('click', function() {
-                    const rows = ["SEP=,"]; // Start with a separator for CSV
+                    const rows = [];
+                    rows.push(["SEP=,"]); // Add a separator line for CSV
+
                     const headers = table.columns().header().toArray().map(header => `"${$(header).text().trim().replace(/"/g, '""')}"`);
                     rows.push(headers);
 
