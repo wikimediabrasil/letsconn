@@ -19,6 +19,15 @@
                 height: auto;
                 margin-bottom: 20px;
             }
+            .table-container {
+                width: 80%;
+                max-height: 70vh;
+                overflow-y: auto;
+                background-color: #fff;
+                border-radius: 10px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+            }
             .button-container {
                 display: flex;
                 gap: 10px; /* Space between buttons */
@@ -103,46 +112,48 @@
             <button onclick="window.location.href='/'">Home</button>
             <button class="load" id="loadUserDataBtn">Load User Data</button>
         </div>
-        <table id="myTable" class="display responsive" style="width:80%">
-            <thead>
-                <tr>
-                    <th>Enrollment ID</th>
-                    {% with all_keys=all_enrollment_keys %}
-                        {% for key in all_keys %}
-                            <th>{{ key|capfirst|underscore }}</th>
-                        {% endfor %}
-                    {% endwith %}
-                    <th>Enrollment time</th>
-                    <th>Territory</th>
-                    <th>Affiliation</th>
-                    <th>Language</th>
-                    <th>Manager</th>
-                    <th>Joined Date</th>
-                    <th>Last Update</th>
-                    <th>Last Login</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for enrollment in enrollments %}
+        <div class="table-container">
+            <table id="myTable" class="display responsive" style="width:80%">
+                <thead>
                     <tr>
-                        <td>{{ enrollment.id }}</td>
+                        <th>Enrollment ID</th>
                         {% with all_keys=all_enrollment_keys %}
                             {% for key in all_keys %}
-                                <td>{{ enrollment.data|get_item:key }}</td>
+                                <th>{{ key|capfirst|underscore }}</th>
                             {% endfor %}
                         {% endwith %}
-                        <td>{{ enrollment.timestamp }}</td>
-                        <td class="territory"></td>
-                        <td class="affiliation"></td>
-                        <td class="language"></td>
-                        <td class="manager"></td>
-                        <td class="joined-date"></td>
-                        <td class="last-update"></td>
-                        <td class="last-login"></td>
+                        <th>Enrollment time</th>
+                        <th>Territory</th>
+                        <th>Affiliation</th>
+                        <th>Language</th>
+                        <th>Manager</th>
+                        <th>Joined Date</th>
+                        <th>Last Update</th>
+                        <th>Last Login</th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for enrollment in enrollments %}
+                        <tr>
+                            <td>{{ enrollment.id }}</td>
+                            {% with all_keys=all_enrollment_keys %}
+                                {% for key in all_keys %}
+                                    <td>{{ enrollment.data|get_item:key }}</td>
+                                {% endfor %}
+                            {% endwith %}
+                            <td>{{ enrollment.timestamp }}</td>
+                            <td class="territory"></td>
+                            <td class="affiliation"></td>
+                            <td class="language"></td>
+                            <td class="manager"></td>
+                            <td class="joined-date"></td>
+                            <td class="last-update"></td>
+                            <td class="last-login"></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
         <script type="text/javascript">
             $(document).ready(function() {
                 // Hide extra columns initially
