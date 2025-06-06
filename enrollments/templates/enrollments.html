@@ -108,7 +108,7 @@
         <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Let%27s_Connect_logo.svg/300px-Let%27s_Connect_logo.svg.png" alt="Let's Connect Logo">
         <div class="loader" id="loader"></div>
         <div class="button-container">
-            <button class="csv" onclick="window.location.href='/csv/'">Download CSV</button>
+            <button class="csv" id="downloadCsvBtn">Download CSV</button>
             <button onclick="window.location.href='/'">Home</button>
             <button class="load" id="loadUserDataBtn">Load User Data</button>
         </div>
@@ -155,11 +155,11 @@
             </table>
         </div>
         <script type="text/javascript">
+            let table;
+
             $(document).ready(function() {
-                // Hide extra columns initially
-                $('#myTable th.user-extra-col, #myTable td.user-extra-col').hide();
-                // Enable moment.js date sorting for DataTables
-                let table = $('#myTable').DataTable({
+                // Initialize the DataTable and assign it to the global variable
+                table = $('#myTable').DataTable({
                     responsive: true,
                     scrollY: '50vh',
                     scrollCollapse: true,
@@ -269,6 +269,29 @@
                     $('.dataTables_wrapper').show();
                     table.columns.adjust();
                     table.responsive.recalc();
+                    table.columns.adjust();
+                });
+
+                $('#downloadCsvBtn').on('click', function() {
+                    const rows = [];
+                    const headers = table.columns().header().toArray().map(header => $(header).text().trim());
+                    rows.push(headers);
+
+                    table.rows().every(function() {
+                        const rowData = this.data();
+                        rows.push(rowData.map(cell => cell.trim()));
+                    });
+
+                    const csvContent = rows.map(e => e.join(",")).join("\n");
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const link = document.createElement("a");
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", "enrollment_data.csv");
+                    link.style.visibility = "hidden";
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
                 });
             });
         </script>

@@ -92,40 +92,6 @@ def enrollments_view(request):
         'all_enrollment_keys': all_keys
     })
 
-@require_GET
-@login_required
-@approved_required
-def csv_view(request):
-    """
-    Render the CSV page with dynamic fields.
-    """
-    response = HttpResponse(content_type='text/csv; charset=utf-8',
-                            headers={'Content-Disposition': 'attachment; filename="enrollment_data.csv"'})
-    writer = csv.writer(response)
-
-    # Get all unique keys from the data field
-    enrollments = Enrollment.objects.all()
-    keys = set()
-    for enrollment in enrollments:
-        keys.update(enrollment.data.keys())
-
-    keys.discard("timestamp")
-    keys.discard("nonce")
-    keys = sorted(keys, key=lambda x: (x != "user", x))
-
-    # Write the header row
-    writer.writerow(['Enrollment ID'] + list(keys) + ['Timestamp'])
-
-    # Write the data rows
-    for enrollment in enrollments:
-        row = [enrollment.id]
-        for key in keys:
-            row.append(enrollment.data.get(key, ''))  # Use empty string if key is missing
-        row.append(enrollment.timestamp)
-        writer.writerow(row)
-
-    return response
-
 @login_required
 @approved_required
 def manage_view(request):
