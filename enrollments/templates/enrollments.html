@@ -103,7 +103,7 @@
             <button onclick="window.location.href='/'">Home</button>
             <button class="load" id="loadUserDataBtn">Load User Data</button>
         </div>
-        <table id="myTable" class="display responsive" style="width:100%">
+        <table id="myTable" class="display responsive" style="width:80%">
             <thead>
                 <tr>
                     <th>Enrollment ID</th>
@@ -257,6 +257,7 @@
                     $('#loader').hide();
                     $('.dataTables_wrapper').show();
                     table.columns.adjust();
+                    table.responsive.recalc();
                 });
             });
         </script>
