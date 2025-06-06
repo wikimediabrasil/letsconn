@@ -43,6 +43,12 @@
             button.csv:hover {
                 background-color: #218838;
             }
+            button.load {
+                background-color: #6f42c1;
+            }
+            button.load:hover {
+                background-color: #5a32a3;
+            }
         </style>
         <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/css/jquery.dataTables.min.css" />
         <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons-dt/2.3.6/buttons.dataTables.min.css" />
@@ -95,7 +101,7 @@
         <div class="button-container">
             <button class="csv" onclick="window.location.href='/csv/'">Download CSV</button>
             <button onclick="window.location.href='/'">Home</button>
-            <button id="loadUserDataBtn">Load User Data</button>
+            <button class="load" id="loadUserDataBtn">Load User Data</button>
         </div>
         <table id="myTable" class="display responsive" style="width:100%">
             <thead>
