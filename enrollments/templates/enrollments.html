@@ -127,6 +127,12 @@
                         <th>Affiliation</th>
                         <th>Language</th>
                         <th>Manager</th>
+                        <th>Alternative Wikimedia account</th>
+                        <th>Wikimedia projects</th>
+                        <th>Available capacities</th>
+                        <th>Known capacities</th>
+                        <th>Wanted capacities</th>
+                        <th>Badges</th>
                         <th>Joined Date</th>
                         <th>Last Update</th>
                         <th>Last Login</th>
@@ -146,6 +152,12 @@
                             <td class="affiliation"></td>
                             <td class="language"></td>
                             <td class="manager"></td>
+                            <td class="alternative-wikimedia-account"></td>
+                            <td class="wikimedia-projects"></td>
+                            <td class="available-capacities"></td>
+                            <td class="known-capacities"></td>
+                            <td class="wanted-capacities"></td>
+                            <td class="badges"></td>
                             <td class="joined-date"></td>
                             <td class="last-update"></td>
                             <td class="last-login"></td>
@@ -170,16 +182,11 @@
                         }
                     ]
                 });
-                let colcount = table.columns().count();
-                table.columns([
-                    colcount - 7,
-                    colcount - 6,
-                    colcount - 5,
-                    colcount - 4,
-                    colcount - 3, 
-                    colcount - 2, 
-                    colcount - 1
-                ]).visible(false);
+
+                const extraColumns = 13;
+                const hiddenColumns = Array.from({ length: extraColumns }, (_, i) => table.columns().count() - (extraColumns - i));
+                table.columns(hiddenColumns).visible(false);
+
                 $('#loader').hide();
                 $('#myTable').show();
 
@@ -192,15 +199,7 @@
                 $('#loadUserDataBtn').on('click', async function() {
                     $('#loader').show();
                     $('.table-container').hide();
-                    table.columns([
-                        colcount - 7,
-                        colcount - 6,
-                        colcount - 5,
-                        colcount - 4,
-                        colcount - 3,
-                        colcount - 2,
-                        colcount - 1
-                    ]).visible(true);
+                    table.columns(hiddenColumns).visible(true);
 
                     const userCache = {};
                     const usernamesSet = table.column(1).data().toArray();
@@ -208,7 +207,41 @@
 
                     const territoryData = await fetchList('territory');
                     const affiliationData = await fetchList('affiliation');
+                    const wikimediaProjectsData = await fetchList('wikimedia_project');
+                    const capacityData = await fetchList('skills');
+                    const badgesData = await fetchList('badges');
                     const languageData = await fetchList('language');
+
+                    function getTerritoryNames(user, territoryData) {
+                        return (user.territory || []).map(id => territoryData[id] || 'Unknown').join(', ');
+                    }
+                    function getAffiliationNames(user, affiliationData) {
+                        return (user.affiliation || []).map(id => affiliationData[id] || 'Unknown').join(', ');
+                    }
+                    function getManagerNames(user, affiliationData) {
+                        return (user.is_manager || []).map(id => affiliationData[id] || 'Unknown').join(', ');
+                    }
+                    function getWikimediaProjectNames(user, wikimediaProjectsData) {
+                        return (user.wikimedia_projects || []).map(id => wikimediaProjectsData[id] || 'Unknown').join(', ');
+                    }
+                    function getWantedCapacities(user, capacityData) {
+                        return (user.skills_wanted || []).map(id => capacityData[id] || 'Unknown').join(', ');
+                    }
+                    function getAvailableCapacities(user, capacityData) {
+                        return (user.skills_available || []).map(id => capacityData[id] || 'Unknown').join(', ');
+                    }
+                    function getKnownCapacities(user, capacityData) {
+                        return (user.skills_known || []).map(id => capacityData[id] || 'Unknown').join(', ');
+                    }
+                    function getBadgesNames(user, badgesData) {
+                        return (user.badges || []).map(id => badgesData[id] || 'Unknown').join(', ');
+                    }
+                    function getLanguageNames(user, languageData) {
+                        return (user.language || []).map(lang => {
+                            const name = languageData[lang.id] || 'Unknown';
+                            return `${name} (${lang.proficiency || '?'})`;
+                        }).join(', ');
+                    }
 
                     // Fetch user data for each unique username
                     const fetchPromises = usernames.map(username => {
@@ -220,29 +253,60 @@
                                     const joinedDate = new Date(user.user.date_joined).toLocaleString();
                                     const lastUpdate = new Date(user.last_update).toLocaleString();
                                     const lastLogin = new Date(user.last_login).toLocaleString();
-                                    const territoryNames = (user.territory || [])
-                                                .map(id => territoryData[id] || 'Unknown')
-                                                .join(', ');
-                                    const affiliationNames = (user.affiliation || [])
-                                                .map(id => affiliationData[id] || 'Unknown')
-                                                .join(', ');
-                                    const managerNames = (user.is_manager || [])
-                                                .map(id => affiliationData[id] || 'Unknown')
-                                                .join(', ');
-                                    const languageNames = (user.language || [])
-                                        .map(lang => {
-                                            const name = languageData[lang.id] || 'Unknown';
-                                            return `${name} (${lang.proficiency || '?'})`;
-                                        })
-                                        .join(', ');
-                                    userCache[username] = { joinedDate, lastUpdate, lastLogin, territory: territoryNames, affiliation: affiliationNames, manager: managerNames, language: languageNames };
+                                    const territoryNames = getTerritoryNames(user, territoryData);
+                                    const affiliationNames = getAffiliationNames(user, affiliationData);
+                                    const managerNames = getManagerNames(user, affiliationData);
+                                    const wikimediaProjectNames = getWikimediaProjectNames(user, wikimediaProjectsData);
+                                    const wantedCapacitiesNames = getWantedCapacities(user, capacityData);
+                                    const availableCapacitiesNames = getAvailableCapacities(user, capacityData);
+                                    const knownCapacitiesNames = getKnownCapacities(user, capacityData);
+                                    const badgesNames = getBadgesNames(user, badgesData);
+                                    const languageNames = getLanguageNames(user, languageData);
+                                    userCache[username] = { 
+                                        joinedDate, 
+                                        lastUpdate, 
+                                        lastLogin, 
+                                        territory: territoryNames, 
+                                        affiliation: affiliationNames, 
+                                        manager: managerNames, 
+                                        language: languageNames, 
+                                        wikimediaProjects: wikimediaProjectNames, 
+                                        wantedCapacities: wantedCapacitiesNames, 
+                                        availableCapacities: availableCapacitiesNames, 
+                                        knownCapacities: knownCapacitiesNames, 
+                                        badges: badgesNames };
                                 } else {
-                                    userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '', territory: '', affiliation: '', manager: '', language: '' };
+                                    userCache[username] = { 
+                                        joinedDate: '', 
+                                        lastUpdate: '', 
+                                        lastLogin: '', 
+                                        territory: '', 
+                                        affiliation: '', 
+                                        manager: '', 
+                                        language: '', 
+                                        wikimediaProjects: '', 
+                                        wantedCapacities: '', 
+                                        availableCapacities: '', 
+                                        knownCapacities: '', 
+                                        badges: '' };
                                 }
                             })
                             .catch(error => {
                                 console.error(`Error fetching data for ${username}:`, error);
-                                userCache[username] = { joinedDate: '', lastUpdate: '', lastLogin: '', territory: '', affiliation: '', manager: '', language: '' };
+                                userCache[username] = { 
+                                    joinedDate: '', 
+                                    lastUpdate: '', 
+                                    lastLogin: '', 
+                                    territory: '', 
+                                    affiliation: '', 
+                                    manager: '', 
+                                    language: '', 
+                                    wikimediaProjects: '', 
+                                    wantedCapacities: '', 
+                                    availableCapacities: '', 
+                                    knownCapacities: '', 
+                                    badges: '' 
+                                };
                             });
                     });
 
@@ -252,7 +316,20 @@
                     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
                         const data = this.data();
                         const username = data[1]; // Assuming the username is in the second column
-                        const userData = userCache[username] || { joinedDate: '', lastUpdate: '', lastLogin: '' };
+                        const userData = userCache[username] || { 
+                            joinedDate: '', 
+                            lastUpdate: '', 
+                            lastLogin: '', 
+                            territory: '', 
+                            affiliation: '', 
+                            manager: '', 
+                            language: '', 
+                            wikimediaProjects: '', 
+                            wantedCapacities: '', 
+                            availableCapacities: '', 
+                            knownCapacities: '', 
+                            badges: '' 
+                        };
                         this.node().querySelector('.joined-date').innerText = userData.joinedDate;
                         this.node().querySelector('.last-update').innerText = userData.lastUpdate;
                         this.node().querySelector('.last-login').innerText = userData.lastLogin;
@@ -260,6 +337,11 @@
                         this.node().querySelector('.affiliation').innerText = userData.affiliation;
                         this.node().querySelector('.language').innerText = userData.language;
                         this.node().querySelector('.manager').innerText = userData.manager;
+                        this.node().querySelector('.wikimedia-projects').innerText = userData.wikimediaProjects;
+                        this.node().querySelector('.wanted-capacities').innerText = userData.wantedCapacities;
+                        this.node().querySelector('.available-capacities').innerText = userData.availableCapacities;
+                        this.node().querySelector('.known-capacities').innerText = userData.knownCapacities;
+                        this.node().querySelector('.badges').innerText = userData.badges;
                         this.invalidate();
                     });
 
