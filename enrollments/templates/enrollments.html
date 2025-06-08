@@ -169,6 +169,23 @@
         <script type="text/javascript">
             let table;
 
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            const csrftoken = getCookie('csrftoken');
+
             $(document).ready(function() {
                 // Initialize the DataTable and assign it to the global variable
                 table = $('#myTable').DataTable({
@@ -200,6 +217,25 @@
                     $('#loader').show();
                     $('.table-container').hide();
                     table.columns(hiddenColumns).visible(true);
+
+                    const qidArray = Array.from(allCapacityQIDs);
+                    const qidResponse = await fetch('https://letsconn.toolforge.org/proxy/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrftoken
+                        },
+                        mode: 'same-origin',
+                        body: JSON.stringify({ qids: qidArray })
+                    });
+
+                    const qidData = await qidResponse.json();
+
+                    qidArray.forEach(qid => {
+                        if (qidData[qid]) {
+                            capacityData[qid] = qidData[qid];
+                        }
+                    });
 
                     const userCache = {};
                     const usernamesSet = table.column(1).data().toArray();
