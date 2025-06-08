@@ -46,29 +46,69 @@ def approved_required(view_func):
             return render(request, 'home.html')
     return _wrapped_view
 
-@require_GET
 @login_required
 @approved_required
 def proxy_api_request(request):
     """
     Proxy API request to the external service.
     """
-    query = request.GET.get('query', '')
-    items = request.GET.get('item', '')
-    if not query and not items:
-        return JsonResponse({'error': 'Query or item parameter is required'}, status=400)
+    if request.method == 'GET':
+        query = request.GET.get('query', '')
+        items = request.GET.get('item', '')
+        if not query and not items:
+            return JsonResponse({'error': 'Query or item parameter is required'}, status=400)
 
-    if query:
-        api_url = f"https://capx-backend.toolforge.org/users/?{query}"
-        response = requests.get(api_url)
-    elif items:
-        api_url = f"https://capx-backend.toolforge.org/list/{items}/"
-        response = requests.get(api_url)
+        if query:
+            api_url = f"https://capx-backend.toolforge.org/users/?{query}"
+            response = requests.get(api_url)
+        elif items:
+            api_url = f"https://capx-backend.toolforge.org/list/{items}/"
+            response = requests.get(api_url)
 
-    if response.status_code == 200:
-        return JsonResponse(response.json())
-    else:
-        return JsonResponse({'error': 'Failed to fetch data from external service'}, status=response.status_code)
+        if response.status_code == 200:
+            return JsonResponse(response.json())
+        else:
+            return JsonResponse({'error': 'Failed to fetch data from external service'}, status=response.status_code)
+    elif request.method == 'POST':
+        qids = request.POST.getlist('qids[]', [])
+        if not qids:
+            return JsonResponse({'error': 'QIDs parameter is required'}, status=400)
+
+        # Construct SPARQL query
+        mb_query_text = f"""
+            PREFIX wbt:<https://metabase.wikibase.cloud/prop/direct/>  
+            SELECT ?item ?itemLabel ?itemDescription ?value WHERE {{  
+                VALUES ?value {{{" ".join([f'"{qid}"' for qid in qids])}}}  
+                ?item wbt:P67/wbt:P1 ?value.  
+                SERVICE wikibase:label {{ bd:serviceParam wikibase:language 'en'. }}
+            }}
+        """
+        api_url = f"https://metabase.wikibase.cloud/query/sparql?format=json&query={requests.utils.quote(mb_query_text)}"
+        response = requests.post(
+            api_url,
+            headers={
+                "Content-Type": "application/sparql-query",
+                "Accept": "application/sparql-results+json",
+                "User-Agent": "CapX/1.0",
+            },
+        )
+
+        if response.status_code == 200:
+            # Process the raw results to a consistent format
+            raw_results = response.json().get("results", {}).get("bindings", [])
+            results = [
+                {
+                    "wd_code": item.get("value", {}).get("value"),
+                    "name": item.get("itemLabel", {}).get("value"),
+                    "description": item.get("itemDescription", {}).get("value", ""),
+                    "item": item.get("item", {}).get("value"),
+                }
+                for item in raw_results
+                if item.get("item") and item.get("itemLabel") and item.get("value")
+            ]
+            return JsonResponse(results, safe=False)
+        else:
+            return JsonResponse({'error': 'Failed to fetch data from external service'}, status=response.status_code)
 
 @require_GET
 @login_required

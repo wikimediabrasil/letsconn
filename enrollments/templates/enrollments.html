@@ -224,15 +224,6 @@
                     function getWikimediaProjectNames(user, wikimediaProjectsData) {
                         return (user.wikimedia_projects || []).map(id => wikimediaProjectsData[id] || 'Unknown').join(', ');
                     }
-                    function getWantedCapacities(user, capacityData) {
-                        return (user.skills_wanted || []).map(id => capacityData[id] || 'Unknown').join(', ');
-                    }
-                    function getAvailableCapacities(user, capacityData) {
-                        return (user.skills_available || []).map(id => capacityData[id] || 'Unknown').join(', ');
-                    }
-                    function getKnownCapacities(user, capacityData) {
-                        return (user.skills_known || []).map(id => capacityData[id] || 'Unknown').join(', ');
-                    }
                     function getBadgesNames(user, badgesData) {
                         return (user.badges || []).map(id => badgesData[id] || 'Unknown').join(', ');
                     }
@@ -241,6 +232,23 @@
                             const name = languageData[lang.id] || 'Unknown';
                             return `${name} (${lang.proficiency || '?'})`;
                         }).join(', ');
+                    }
+
+                    const allCapacityQIDs = new Set();
+                    function getWantedCapacities(user, capacityData) {
+                        const qids = user.skills_wanted || [];
+                        qids.forEach(id => allCapacityQIDs.add(id));
+                        return qids.map(id => capacityData[id] || 'Unknown').join(', ');
+                    }
+                    function getAvailableCapacities(user, capacityData) {
+                        const qids = user.skills_available || [];
+                        qids.forEach(id => allCapacityQIDs.add(id));
+                        return qids.map(id => capacityData[id] || 'Unknown').join(', ');
+                    }
+                    function getKnownCapacities(user, capacityData) {
+                        const qids = user.skills_known || [];
+                        qids.forEach(id => allCapacityQIDs.add(id));
+                        return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
 
                     // Fetch user data for each unique username
@@ -311,6 +319,25 @@
                     });
 
                     await Promise.all(fetchPromises);
+
+                    // Convert all QIDs to real names via POST request
+                    const qidArray = Array.from(allCapacityQIDs);
+                    const qidResponse = await fetch('https://letsconn.toolforge.org/proxy/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ qids: qidArray })
+                    });
+
+                    const qidData = await qidResponse.json();
+
+                    // Update capacityData with real names
+                    qidArray.forEach(qid => {
+                        if (qidData[qid]) {
+                            capacityData[qid] = qidData[qid];
+                        }
+                    });
 
                     // Update all rows with the fetched data, using DataTables API
                     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
