@@ -273,17 +273,17 @@
                     const allCapacityQIDs = new Set();
                     function getWantedCapacities(user, capacityData) {
                         const qids = user.skills_wanted || [];
-                        qids.forEach(id => allCapacityQIDs.add(id));
+                        qids.forEach(id => allCapacityQIDs.add(capacityData[id]));
                         return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
                     function getAvailableCapacities(user, capacityData) {
                         const qids = user.skills_available || [];
-                        qids.forEach(id => allCapacityQIDs.add(id));
+                        qids.forEach(id => allCapacityQIDs.add(capacityData[id]));
                         return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
                     function getKnownCapacities(user, capacityData) {
                         const qids = user.skills_known || [];
-                        qids.forEach(id => allCapacityQIDs.add(id));
+                        qids.forEach(id => allCapacityQIDs.add(capacityData[id]));
                         return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
 
