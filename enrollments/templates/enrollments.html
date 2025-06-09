@@ -185,6 +185,7 @@
             }
 
             const csrftoken = getCookie('csrftoken');
+            const serverName = window.location.origin; // Dynamically get the server name
 
             $(document).ready(function() {
                 // Initialize the DataTable and assign it to the global variable
@@ -209,7 +210,7 @@
 
                 // Function to fetch list data from the API
                 async function fetchList(type) {
-                    const response = await fetch(`https://letsconn.toolforge.org/proxy/?item=${type}`);
+                    const response = await fetch(`${serverName}/proxy/?item=${type}`);
                     return response.json();
                 }
 
@@ -268,9 +269,21 @@
                         return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
 
+                    function changeQidToName(qid) {
+                        // Split the QIDs by comma and map each QID to its name
+                        if (!qid) return 'Unknown';
+                        let qidNames = [];
+                        const qids = qid.split(',').map(q => q.trim());
+                        for (const q of qids) {
+                            const name = capacityData[q] || 'Unknown';
+                            qidNames.push(name);
+                        }
+                        return qidNames.join(', ');
+                    }
+
                     // Fetch user data for each unique username
                     const fetchPromises = usernames.map(username => {
-                        return fetch(`https://letsconn.toolforge.org/proxy/?query=user__username=${username}`)
+                        return fetch(`${serverName}/proxy/?query=user__username=${username}`)
                             .then(response => response.json())
                             .then(data => {
                                 if (data.results && data.results.length > 0) {
@@ -339,7 +352,7 @@
 
                     // Convert all QIDs to real names via POST request
                     const qidArray = Array.from(allCapacityQIDs);
-                    const qidResponse = await fetch('https://letsconn.toolforge.org/proxy/', {
+                    const qidResponse = await fetch(`${serverName}/proxy/`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -352,8 +365,9 @@
 
                     // Update capacityData with real names
                     qidArray.forEach(qid => {
-                        if (qidData[qid]) {
-                            capacityData[qid] = qidData[qid];
+                        const matchingItem = qidData.find(item => item.wd_code === qid);
+                        if (matchingItem) {
+                            capacityData[qid] = matchingItem.name;
                         }
                     });
 
@@ -383,9 +397,9 @@
                         this.node().querySelector('.language').innerText = userData.language;
                         this.node().querySelector('.manager').innerText = userData.manager;
                         this.node().querySelector('.wikimedia-projects').innerText = userData.wikimediaProjects;
-                        this.node().querySelector('.wanted-capacities').innerText = userData.wantedCapacities;
-                        this.node().querySelector('.available-capacities').innerText = userData.availableCapacities;
-                        this.node().querySelector('.known-capacities').innerText = userData.knownCapacities;
+                        this.node().querySelector('.wanted-capacities').innerText = changeQidToName(userData.wantedCapacities);
+                        this.node().querySelector('.available-capacities').innerText = changeQidToName(userData.availableCapacities);
+                        this.node().querySelector('.known-capacities').innerText = changeQidToName(userData.knownCapacities);
                         this.node().querySelector('.badges').innerText = userData.badges;
                         this.invalidate();
                     });

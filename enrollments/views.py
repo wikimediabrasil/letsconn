@@ -80,19 +80,19 @@ def proxy_api_request(request):
             return JsonResponse({'error': 'QIDs parameter is required'}, status=400)
 
         # Construct SPARQL query
-        mb_query_text = f"""
-            PREFIX wbt:<https://metabase.wikibase.cloud/prop/direct/>  
-            SELECT ?item ?itemLabel ?itemDescription ?value WHERE {{  
+        mb_query_text = f"""PREFIX wbt:<https://metabase.wikibase.cloud/prop/direct/>  
+            SELECT ?item ?itemLabel ?value WHERE {{  
                 VALUES ?value {{{" ".join([f'"{qid}"' for qid in qids])}}}  
                 ?item wbt:P67/wbt:P1 ?value.  
                 SERVICE wikibase:label {{ bd:serviceParam wikibase:language 'en'. }}
             }}
         """
-        api_url = f"https://metabase.wikibase.cloud/query/sparql?format=json&query={requests.utils.quote(mb_query_text)}"
+        
+        api_url = "https://metabase.wikibase.cloud/query/sparql"
         response = requests.post(
             api_url,
+            data={"query": mb_query_text},
             headers={
-                "Content-Type": "application/sparql-query",
                 "Accept": "application/sparql-results+json",
                 "User-Agent": "CapX/1.0",
             },
@@ -105,7 +105,6 @@ def proxy_api_request(request):
                 {
                     "wd_code": item.get("value", {}).get("value"),
                     "name": item.get("itemLabel", {}).get("value"),
-                    "description": item.get("itemDescription", {}).get("value", ""),
                     "item": item.get("item", {}).get("value"),
                 }
                 for item in raw_results
