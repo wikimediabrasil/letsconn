@@ -70,7 +70,12 @@ def proxy_api_request(request):
         else:
             return JsonResponse({'error': 'Failed to fetch data from external service'}, status=response.status_code)
     elif request.method == 'POST':
-        qids = request.POST.getlist('qids[]', [])
+        try:
+            body = json.loads(request.body)
+            qids = body.get('qids', [])
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
         if not qids:
             return JsonResponse({'error': 'QIDs parameter is required'}, status=400)
 
