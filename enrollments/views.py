@@ -15,14 +15,14 @@ from cryptography.hazmat.primitives import serialization
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.utils.timezone import make_aware
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 # Local application imports
 from credentials.models import CustomUser
-from enrollments.models import Enrollment
+from enrollments.models import Enrollment, Profile
 
 
 PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + ('/' if settings.HOME else '') + 'public_key.pem', 'rb').read())
@@ -183,6 +183,27 @@ def manage_view(request):
     return render(request, 'manage.html', {
         'unapproved_users': unapproved_users,
         'approved_users': approved_users
+    })
+
+@require_GET
+def profile_view(request):
+    """
+    View to retrieve and display user profile information.
+    """
+    username = request.GET.get('username')
+    if not username:
+        return JsonResponse({'error': 'Username parameter is required'}, status=400)
+
+    profile = get_object_or_404(Profile, username=username)
+    return JsonResponse({
+        'username': profile.username,
+        'username_org': profile.username_org,
+        'reconciled_affiliation': profile.reconciled_affiliation,
+        'reconciled_territory': profile.reconciled_territory,
+        'reconciled_languages': profile.reconciled_languages,
+        'reconciled_projects': profile.reconciled_projects,
+        'reconciled_want_to_learn': profile.reconciled_want_to_learn,
+        'reconciled_want_to_share': profile.reconciled_want_to_share
     })
 
 @csrf_exempt
