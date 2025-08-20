@@ -6,6 +6,7 @@ class Enrollment(models.Model):
     """
     Model representing an enrollment in the platform with dynamic fields.
     """
+    user = models.CharField(max_length=255, unique=True, null=False, blank=False)
     data = models.JSONField()
     timestamp = models.DateTimeField(auto_now_add=True)
     confirmation_code = models.CharField(max_length=64, blank=True, null=True)

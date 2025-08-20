@@ -116,7 +116,6 @@
             <table id="myTable" class="display responsive" style="width:80%">
                 <thead>
                     <tr>
-                        <th>Enrollment ID</th>
                         {% with all_keys=all_enrollment_keys %}
                             {% for key in all_keys %}
                                 <th>{{ key|capfirst|underscore }}</th>
@@ -141,7 +140,6 @@
                 <tbody>
                     {% for enrollment in enrollments %}
                         <tr>
-                            <td>{{ enrollment.id }}</td>
                             {% with all_keys=all_enrollment_keys %}
                                 {% for key in all_keys %}
                                     <td>{{ enrollment.data|get_item:key }}</td>
@@ -220,7 +218,7 @@
                     table.columns(hiddenColumns).visible(true);
 
                     const userCache = {};
-                    const usernamesSet = table.column(1).data().toArray();
+                    const usernamesSet = table.column(0).data().toArray();
                     const usernames = [...new Set(usernamesSet.filter(username => username.trim() !== ''))];
 
                     const territoryData = await fetchList('territory');
@@ -374,7 +372,7 @@
                     // Update all rows with the fetched data, using DataTables API
                     table.rows().every(function(rowIdx, tableLoop, rowLoop) {
                         const data = this.data();
-                        const username = data[1]; // Assuming the username is in the second column
+                        const username = data[0]; // Assuming the username is in the first column
                         const userData = userCache[username] || { 
                             joinedDate: '', 
                             lastUpdate: '', 

@@ -226,7 +226,10 @@ def receive_enrollment_data(request):
             return JsonResponse({'error': 'Invalid token'}, status=401)
 
         # Store the entire payload dynamically
-        enrollment = Enrollment.objects.create(data=data)
+        enrollment, _ = Enrollment.objects.update_or_create(
+            user=data.get('user'),
+            defaults={'data': data}
+        )
 
         # Generate confirmation token
         confirmation_id = str(uuid.uuid4())
