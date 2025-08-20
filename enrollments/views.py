@@ -121,7 +121,7 @@ def enrollments_view(request):
     """
     Render the enrollment page.
     """
-    enrollments = Enrollment.objects.all()
+    enrollments = list(Enrollment.objects.all())
     all_keys = set()
     for enrollment in enrollments:
         all_keys.update(enrollment.data.keys())
@@ -129,6 +129,18 @@ def enrollments_view(request):
     all_keys.discard("timestamp")
     all_keys.discard("nonce")
     all_keys = sorted(all_keys, key=lambda x: (x != "user", x))
+
+    user_names = Enrollment.objects.values_list('user', flat=True)
+    profiles = Profile.objects.exclude(username__in=user_names)
+    for profile in profiles:
+        enrollments.append({
+            "user": profile.username,
+            "data": {
+                "user": profile.username,
+                "email": profile.email,
+                "full_name": profile.full_name
+            },
+        })
 
     return render(request, 'enrollments.html', {
         'enrollments': enrollments,

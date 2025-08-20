@@ -20,6 +20,8 @@ class Profile(models.Model):
     reconciled_projects = models.JSONField(blank=True, null=True)
     reconciled_want_to_learn = models.JSONField(blank=True, null=True)
     reconciled_want_to_share = models.JSONField(blank=True, null=True)
+    full_name = models.CharField(max_length=255, blank=True, null=True)
+    email = models.EmailField(max_length=255, blank=True, null=True)
 
     def __str__(self):
         return self.username
