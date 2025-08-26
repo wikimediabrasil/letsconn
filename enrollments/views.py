@@ -237,11 +237,19 @@ def receive_enrollment_data(request):
         if not data:
             return JsonResponse({'error': 'Invalid token'}, status=401)
 
-        # Store the entire payload dynamically
-        enrollment, _ = Enrollment.objects.update_or_create(
-            user=data.get('user'),
-            defaults={'data': data}
-        )
+        # Store the entire payload dynamically, updating only non-empty fields
+        user = data.get('user')
+        try:
+            enrollment = Enrollment.objects.get(user=user)
+            # Only update fields in enrollment.data if the new value is not None, blank, or zero
+            updated_data = enrollment.data.copy() if enrollment.data else {}
+            for k, v in data.items():
+                if v not in [None, '', 0, 'null']:
+                    updated_data[k] = v
+            enrollment.data = updated_data
+            enrollment.save(update_fields=['data'])
+        except Enrollment.DoesNotExist:
+            enrollment = Enrollment.objects.create(user=user, data=data)
 
         # Generate confirmation token
         confirmation_id = str(uuid.uuid4())
