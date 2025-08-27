@@ -218,6 +218,18 @@ def profile_view(request):
         'reconciled_want_to_share': profile.reconciled_want_to_share
     })
 
+@require_GET
+def exist_view(request):
+    """
+    View to check if a user exists.
+    """
+    username = request.GET.get('username')
+    if not username:
+        return JsonResponse({'error': 'Username parameter is required'}, status=400)
+
+    exists = Profile.objects.filter(username=username).exists()
+    return JsonResponse({'exists': exists})
+
 @csrf_exempt
 @require_POST
 def receive_enrollment_data(request):
