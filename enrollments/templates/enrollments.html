@@ -164,6 +164,7 @@
                 </tbody>
             </table>
         </div>
+        <div class="status" id="status"></div>
         <script type="text/javascript">
             let table;
 
@@ -214,12 +215,19 @@
 
                 $('#loadUserDataBtn').on('click', async function() {
                     $('#loader').show();
+                    $('#status').html('<div style="text-align:center;">Starting user data fetch...</div>');
                     $('.table-container').hide();
                     table.columns(hiddenColumns).visible(true);
 
                     const userCache = {};
                     const usernamesSet = table.column(0).data().toArray();
                     const usernames = [...new Set(usernamesSet.filter(username => username.trim() !== ''))];
+
+                    // Fetch all valid users first
+                    const validUsersResp = await fetch(`${serverName}/proxy/?item=users`);
+                    const validUsersData = await validUsersResp.json();
+                    const validUsernames = new Set(Object.values(validUsersData));
+                    const filteredUsernames = usernames.filter(u => validUsernames.has(u));
 
                     const territoryData = await fetchList('territory');
                     const affiliationData = await fetchList('affiliation');
@@ -279,56 +287,42 @@
                         return qidNames.join(', ');
                     }
 
-                    // Fetch user data for each unique username
-                    const fetchPromises = usernames.map(username => {
-                        return fetch(`${serverName}/proxy/?query=user__username=${username}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.results && data.results.length > 0) {
-                                    const user = data.results[0];
-                                    const joinedDate = new Date(user.user.date_joined).toLocaleString();
-                                    const lastUpdate = new Date(user.last_update).toLocaleString();
-                                    const lastLogin = new Date(user.last_login).toLocaleString();
-                                    const territoryNames = getTerritoryNames(user, territoryData);
-                                    const affiliationNames = getAffiliationNames(user, affiliationData);
-                                    const managerNames = getManagerNames(user, affiliationData);
-                                    const wikimediaProjectNames = getWikimediaProjectNames(user, wikimediaProjectsData);
-                                    const wantedCapacitiesNames = getWantedCapacities(user, capacityData);
-                                    const availableCapacitiesNames = getAvailableCapacities(user, capacityData);
-                                    const knownCapacitiesNames = getKnownCapacities(user, capacityData);
-                                    const badgesNames = getBadgesNames(user, badgesData);
-                                    const languageNames = getLanguageNames(user, languageData);
-                                    userCache[username] = { 
-                                        joinedDate, 
-                                        lastUpdate, 
-                                        lastLogin, 
-                                        territory: territoryNames, 
-                                        affiliation: affiliationNames, 
-                                        manager: managerNames, 
-                                        language: languageNames, 
-                                        wikimediaProjects: wikimediaProjectNames, 
-                                        wantedCapacities: wantedCapacitiesNames, 
-                                        availableCapacities: availableCapacitiesNames, 
-                                        knownCapacities: knownCapacitiesNames, 
-                                        badges: badgesNames };
-                                } else {
-                                    userCache[username] = { 
-                                        joinedDate: '', 
-                                        lastUpdate: '', 
-                                        lastLogin: '', 
-                                        territory: '', 
-                                        affiliation: '', 
-                                        manager: '', 
-                                        language: '', 
-                                        wikimediaProjects: '', 
-                                        wantedCapacities: '', 
-                                        availableCapacities: '', 
-                                        knownCapacities: '', 
-                                        badges: '' };
-                                }
-                            })
-                            .catch(error => {
-                                console.error(`Error fetching data for ${username}:`, error);
+                    // Sequentially fetch user data with progress message
+                    for (let i = 0; i < filteredUsernames.length; i++) {
+                        const username = filteredUsernames[i];
+                        $('#status').html(`<div style="text-align:center;">Getting data from user ${i + 1} of ${filteredUsernames.length}<br><b>${username}</b></div>`);
+                        try {
+                            const response = await fetch(`${serverName}/proxy/?query=user__username=${username}`);
+                            const data = await response.json();
+                            if (data.results && data.results.length > 0) {
+                                const user = data.results[0];
+                                const joinedDate = new Date(user.user.date_joined).toLocaleString();
+                                const lastUpdate = new Date(user.last_update).toLocaleString();
+                                const lastLogin = new Date(user.last_login).toLocaleString();
+                                const territoryNames = getTerritoryNames(user, territoryData);
+                                const affiliationNames = getAffiliationNames(user, affiliationData);
+                                const managerNames = getManagerNames(user, affiliationData);
+                                const wikimediaProjectNames = getWikimediaProjectNames(user, wikimediaProjectsData);
+                                const wantedCapacitiesNames = getWantedCapacities(user, capacityData);
+                                const availableCapacitiesNames = getAvailableCapacities(user, capacityData);
+                                const knownCapacitiesNames = getKnownCapacities(user, capacityData);
+                                const badgesNames = getBadgesNames(user, badgesData);
+                                const languageNames = getLanguageNames(user, languageData);
+                                userCache[username] = { 
+                                    joinedDate, 
+                                    lastUpdate, 
+                                    lastLogin, 
+                                    territory: territoryNames, 
+                                    affiliation: affiliationNames, 
+                                    manager: managerNames, 
+                                    language: languageNames, 
+                                    wikimediaProjects: wikimediaProjectNames, 
+                                    wantedCapacities: wantedCapacitiesNames, 
+                                    availableCapacities: availableCapacitiesNames, 
+                                    knownCapacities: knownCapacitiesNames, 
+                                    badges: badgesNames 
+                                };
+                            } else {
                                 userCache[username] = { 
                                     joinedDate: '', 
                                     lastUpdate: '', 
@@ -343,10 +337,26 @@
                                     knownCapacities: '', 
                                     badges: '' 
                                 };
-                            });
-                    });
-
-                    await Promise.all(fetchPromises);
+                            }
+                        } catch (error) {
+                            console.error(`Error fetching data for ${username}:`, error);
+                            userCache[username] = { 
+                                joinedDate: '', 
+                                lastUpdate: '', 
+                                lastLogin: '', 
+                                territory: '', 
+                                affiliation: '', 
+                                manager: '', 
+                                language: '', 
+                                wikimediaProjects: '', 
+                                wantedCapacities: '', 
+                                availableCapacities: '', 
+                                knownCapacities: '', 
+                                badges: '' 
+                            };
+                        }
+                        $('#status').html('');
+                    }
 
                     // Convert all QIDs to real names via POST request
                     const qidArray = Array.from(allCapacityQIDs);
