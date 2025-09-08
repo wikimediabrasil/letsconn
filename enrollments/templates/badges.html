@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Manage badges</title>
+        <style>
+            body {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                height: 100vh;
+                margin: 0;
+                font-family: Arial, sans-serif;
+                background-color: #f4f4f4;
+            }
+            img {
+                max-width: 300px;
+                height: auto;
+                margin-bottom: 20px;
+            }
+            .button-container {
+                display: flex;
+                gap: 10px;
+                justify-content: center;
+                margin-top: 20px;
+            }
+            button {
+                padding: 10px 20px;
+                font-size: 16px;
+                color: #fff;
+                background-color: #007bff;
+                border: none;
+                border-radius: 5px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #0056b3;
+            }
+            button.approve {
+                background-color: #28a745;
+            }
+            button.approve:hover {
+                background-color: #218838;
+            }
+            button.unapprove {
+                background-color: #dc3545;
+            }
+            button.unapprove:hover {
+                background-color: #a71d2a;
+            }
+            form {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                margin-top: 20px;
+            }
+            input, select, textarea {
+                padding: 10px;
+                font-size: 16px;
+                border: 1px solid #ccc;
+                border-radius: 5px;
+                width: 300px;
+            }
+            .user-list {
+                margin-top: 20px;
+                width: 80%;
+                max-width: 600px;
+            }
+            .user-list table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+            .user-list th, .user-list td {
+                padding: 10px;
+                text-align: left;
+                border-bottom: 1px solid #ccc;
+            }
+            /* Simple accordion */
+            details {
+                background: #fff;
+                border: 1px solid #ddd;
+                border-radius: 6px;
+                padding: 10px 12px;
+                margin: 10px 0;
+            }
+            details > summary {
+                cursor: pointer;
+                font-weight: bold;
+                outline: none;
+            }
+            .inline-actions {
+                display: flex;
+                gap: 6px;
+                align-items: center;
+                flex-wrap: wrap;
+            }
+            .danger {
+                background-color: #dc3545;
+            }
+            .danger:hover {
+                background-color: #a71d2a;
+            }
+            .edit-panel {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                max-width: 900px;
+                margin: 8px 0;
+            }
+            .edit-panel input,
+            .edit-panel textarea {
+                width: 100%;
+            }
+            .edit-panel .actions {
+                display: flex;
+                gap: 10px;
+            }
+        </style>
+    </head>
+    <body>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Let%27s_Connect_logo.svg/300px-Let%27s_Connect_logo.svg.png" alt="Let's Connect Logo">
+        <h1>Manage badges</h1>
+
+        {% if error %}
+            <div style="color: red; margin-top: 10px; text-align: center;">{{ error }}</div>
+        {% endif %}
+        {% if message %}
+            <div style="color: green; margin-top: 10px; text-align: center;">{{ message }}</div>
+        {% endif %}
+
+        <!-- Existing badges -->
+        <div class="user-list" style="max-width: 900px;">
+            <h2>Existing Badges</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for badge in badges %}
+                    <tr>
+                        <td>{% if badge.image %}<img src="{{ badge.image }}" alt="{{ badge.name }}" style="max-width:80px;">{% else %}-{% endif %}</td>
+                        <td>{{ badge.name }}</td>
+                        <td style="max-width:300px;">{{ badge.description }}</td>
+                        <td>
+                            <div id="action-buttons-{{ badge.id }}" class="inline-actions">
+                                <button onclick="toggleEdit('{{ badge.id }}')">Edit</button>
+                                <form method="POST" action="{% url 'badges_view' %}" onsubmit="return confirmDeleteBadge('{{ badge.name|escapejs }}');" style="display:inline; margin-top:0px;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_badge">
+                                    <input type="hidden" name="badge_id" value="{{ badge.id }}">
+                                    <button type="submit" class="danger">Delete</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Full-width edit row -->
+                    <tr id="edit-row-{{ badge.id }}" style="display:none;">
+                        <td colspan="4">
+                            <form method="POST" action="{% url 'badges_view' %}" class="edit-panel">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="edit_badge">
+                                <input type="hidden" name="badge_id" value="{{ badge.id }}">
+                                <input type="text" name="name" value="{{ badge.name }}" placeholder="Name">
+                                <textarea name="description" placeholder="Description" rows="4">{{ badge.description }}</textarea>
+                                <input type="url" name="image" value="{{ badge.image }}" placeholder="Image URL">
+                                <div class="actions">
+                                    <button type="submit">Save</button>
+                                    <button type="button" class="unapprove" onclick="toggleEdit('{{ badge.id }}')">Cancel</button>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="4">
+                            <details>
+                                <summary>Awards for {{ badge.name }}</summary>
+                                <div style="margin-top:10px;">
+                                    <div>
+                                        <strong>Awarded Users</strong>
+                                        <table>
+                                            <thead>
+                                                <tr><th>User</th><th>Issued</th><th>Code</th><th>Action</th></tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for ub in badge.awarded_users.all %}
+                                                    <tr>
+                                                        <td>{{ ub.user }}</td>
+                                                        <td>{{ ub.issued_at }}</td>
+                                                        <td>{{ ub.verification_code|slice:":8" }}…</td>
+                                                        <td>
+                                                            <form method="POST" action="{% url 'badges_view' %}" style="display:inline;">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="revoke_badge">
+                                                                <input type="hidden" name="userbadge_id" value="{{ ub.id }}">
+                                                                <button type="submit" class="unapprove">Remove</button>
+                                                            </form>
+                                                        </td>
+                                                    </tr>
+                                                {% empty %}
+                                                    <tr><td colspan="4">No users awarded yet.</td></tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div style="margin-top:12px;">
+                                        <strong>Grant to User</strong>
+                                        <form method="POST" action="{% url 'badges_view' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="grant_badge">
+                                            <input type="hidden" name="badge_id" value="{{ badge.id }}">
+                                            {% with list_id='usernames-'|add:badge.id %}
+                                                <input list="{{ list_id }}" name="username" placeholder="Username" required>
+                                                <datalist id="{{ list_id }}">
+                                                    {% for p in profiles %}
+                                                        <option value="{{ p.username }}">{{ p.username }}</option>
+                                                    {% endfor %}
+                                                </datalist>
+                                            {% endwith %}
+                                            <button type="submit" class="approve">Grant</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </details>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr><td colspan="4">No badges yet.</td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Add new badge -->
+        <form method="POST" action="{% url 'badges_view' %}">
+            {% csrf_token %}
+            <h2 style="margin:10px 0 0;">Add New Badge</h2>
+            <input type="hidden" name="action" value="add_badge">
+            <input type="text" name="name" placeholder="Badge name" required>
+            <input type="text" name="description" placeholder="Description">
+            <input type="url" name="image" placeholder="Image URL">
+            <button type="submit" class="approve">Create Badge</button>
+        </form>
+
+        <div class="button-container">
+            <button onclick="window.location.href='/'">Home</button>
+        </div>
+
+            <script>
+                function toggleEdit(id) {
+                    var row = document.getElementById('edit-row-' + id);
+                    var actions = document.getElementById('action-buttons-' + id);
+                    if (!row || !actions) return;
+                    var show = (row.style.display === 'none' || !row.style.display);
+                    row.style.display = show ? 'table-row' : 'none';
+                    actions.style.display = show ? 'none' : 'flex';
+                }
+
+                function confirmDeleteBadge(name) {
+                    return confirm('Are you sure you want to delete the badge "' + name + '"?\n\nThis will also remove ALL awarded users for this badge. This action cannot be undone.');
+                }
+            </script>
+        
+    </body>
+    </html>
+        

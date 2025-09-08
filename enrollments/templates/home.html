@@ -54,6 +54,12 @@
             button.manage-users:hover {
                 background-color: #5a32b1;
             }
+            button.manage-badges {
+                background-color: #17a2b8;
+            }
+            button.manage-badges:hover {
+                background-color: #117a8b;
+            }
         </style>
     </head>
     <body>
@@ -66,6 +72,7 @@
                 <div class="button-container">
                     <button class="logout" onclick="location.href='/logout/'">Logout</button>
                     <button class="manage-enrollments" onclick="location.href='/enrollments/'">Manage Enrollments</button>
+                    <button class="manage-badges" onclick="location.href='/badges/'">Manage Badges</button>
                     <button class="manage-users" onclick="location.href='/manage/'">Manage Users</button>
                 </div>
             {% else %}

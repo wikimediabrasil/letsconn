@@ -1,6 +1,7 @@
 from django.db import models
+from django.conf import settings
+from django.utils import timezone
 
-# Create your models here.
 
 class Enrollment(models.Model):
     """
@@ -25,3 +26,27 @@ class Profile(models.Model):
 
     def __str__(self):
         return self.username
+
+
+class Badge(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    image = models.URLField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+class UserBadge(models.Model):
+    user = models.CharField(max_length=255)
+    badge = models.ForeignKey(Badge, on_delete=models.CASCADE, related_name='awarded_users')
+    issued_at = models.DateTimeField(default=timezone.now)
+    verification_code = models.CharField(max_length=64, unique=True)
+
+    class Meta:
+        unique_together = ('user', 'badge')
+
+    def __str__(self):
+        return f"{self.user} - {self.badge}"

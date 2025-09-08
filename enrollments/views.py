@@ -22,7 +22,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 # Local application imports
 from credentials.models import CustomUser
-from enrollments.models import Enrollment, Profile
+from enrollments.models import Enrollment, Profile, Badge, UserBadge
 
 
 PUBLIC_KEY = serialization.load_pem_public_key(open(settings.HOME + ('/' if settings.HOME else '') + 'public_key.pem', 'rb').read())
@@ -238,6 +238,129 @@ def exist_view(request):
 
     exists = Profile.objects.filter(username=username).exists()
     return JsonResponse({'exists': exists})
+
+
+@require_GET
+def user_badges_api(request):
+    """
+    Public API: GET /user-badges/?username=<name>
+    Returns a list of badges awarded to the given username.
+    Each item: { name, picture, description, timestamp, verification_code }
+    """
+    username = request.GET.get('username')
+    if not username:
+        return JsonResponse({'error': 'Username parameter is required'}, status=400)
+
+    userbadges = (
+        UserBadge.objects.filter(user=username)
+        .select_related('badge')
+        .order_by('-issued_at')
+    )
+
+    results = [
+        {
+            'name': ub.badge.name,
+            'picture': ub.badge.image,
+            'description': ub.badge.description,
+            'timestamp': ub.issued_at.isoformat(),
+            'verification_code': ub.verification_code,
+        }
+        for ub in userbadges
+    ]
+
+    return JsonResponse(results, safe=False)
+
+
+@login_required
+@approved_required
+def badges_view(request):
+    """
+    Manage badges: list, create, edit, and manage awarded users.
+    Actions (POST):
+      - add_badge: name, description, image
+      - edit_badge: badge_id, name, description, image
+      - grant_badge: badge_id, username
+      - revoke_badge: userbadge_id
+    """
+    message = None
+    error = None
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        try:
+            if action == 'add_badge':
+                name = request.POST.get('name', '').strip()
+                description = request.POST.get('description', '').strip()
+                image = request.POST.get('image', '').strip()
+                if not name:
+                    raise ValueError('Badge name is required')
+                Badge.objects.create(name=name, description=description, image=image)
+                message = f"Badge '{name}' created."
+
+            elif action == 'edit_badge':
+                badge_id = request.POST.get('badge_id')
+                badge = get_object_or_404(Badge, id=badge_id)
+                name = request.POST.get('name', '').strip()
+                description = request.POST.get('description', '').strip()
+                image = request.POST.get('image', '').strip()
+                if not name:
+                    raise ValueError('Badge name is required')
+                badge.name = name
+                badge.description = description
+                badge.image = image
+                badge.save()
+                message = f"Badge '{name}' updated."
+
+            elif action == 'grant_badge':
+                badge_id = request.POST.get('badge_id')
+                username = request.POST.get('username', '').strip()
+                if not username:
+                    raise ValueError('Username is required')
+                badge = get_object_or_404(Badge, id=badge_id)
+                # Ensure profile exists as our users are char usernames in Profile/Enrollment
+                # This does not restrict to approved users; managers can award to any known username
+                # Prevent duplicates via unique_together
+                if not Profile.objects.filter(username=username).exists():
+                    # allow awarding even if profile not present, as UserBadge.user is CharField
+                    pass
+                verification_code = hashlib.sha256(f"{badge.id}:{username}:{uuid.uuid4()}".encode()).hexdigest()[:64]
+                try:
+                    UserBadge.objects.create(user=username, badge=badge, verification_code=verification_code)
+                    message = f"Granted '{badge.name}' to {username}."
+                except Exception as e:
+                    error = str(e)
+
+            elif action == 'revoke_badge':
+                ub_id = request.POST.get('userbadge_id')
+                userbadge = get_object_or_404(UserBadge, id=ub_id)
+                userbadge.delete()
+                message = 'Badge revoked.'
+
+            elif action == 'delete_badge':
+                badge_id = request.POST.get('badge_id')
+                badge = get_object_or_404(Badge, id=badge_id)
+                name = badge.name
+                badge.delete()  # cascades to UserBadge
+                message = f"Badge '{name}' deleted."
+
+        except Exception as e:
+            error = str(e)
+
+    badges = Badge.objects.all().order_by('name')
+    profiles = Profile.objects.all().order_by('username')
+    # Build mapping of badge_id -> awarded list
+    awarded = {
+        b.id: list(UserBadge.objects.filter(badge=b).order_by('-issued_at'))
+        for b in badges
+    }
+
+    return render(request, 'badges.html', {
+        'badges': badges,
+        'profiles': profiles,
+        'awarded': awarded,
+        'message': message,
+        'error': error,
+    })
 
 @csrf_exempt
 @require_POST
