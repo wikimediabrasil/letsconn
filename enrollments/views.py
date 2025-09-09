@@ -271,6 +271,26 @@ def user_badges_api(request):
     return JsonResponse(results, safe=False)
 
 
+@require_GET
+def badge_verification_view(request, verification_code: str):
+    """
+    Public page: GET /badge/<verification_code>/
+    Renders a certificate-like page with badge, user, and issuance info.
+    """
+    userbadge = get_object_or_404(UserBadge.objects.select_related('badge'), verification_code=verification_code)
+
+    context = {
+        'username': userbadge.user,
+        'badge': userbadge.badge,
+        'issued_at': userbadge.issued_at,
+        'verification_code': userbadge.verification_code,
+        'site_name': "Let's Connect",
+        'site_logo': "https://upload.wikimedia.org/wikipedia/commons/4/4c/Let%27s_Connect_logo.svg",
+        'brand_color': "#122d4c",
+    }
+    return render(request, 'badge_certificate.html', context)
+
+
 @login_required
 @approved_required
 def badges_view(request):

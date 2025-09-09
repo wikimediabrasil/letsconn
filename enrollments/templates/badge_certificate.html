@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Badge Verification • {{ site_name }}</title>
+  <style>
+    :root {
+      --brand: {{ brand_color|default:'#122d4c' }};
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --accent: var(--brand);
+      --text: #0f172a;
+      --muted: #475569;
+      --border: #e2e8f0;
+      --ring: color-mix(in srgb, var(--brand) 30%, transparent);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 700px at 10% 10%, color-mix(in srgb, var(--brand) 6%, transparent), transparent 35%),
+                  radial-gradient(900px 600px at 90% 20%, color-mix(in srgb, var(--brand) 5%, transparent), transparent 40%),
+                  linear-gradient(180deg, #f8fafc, #f1f5f9);
+      color: var(--text);
+    }
+    .container {
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 32px 16px;
+    }
+    .certificate {
+      width: min(900px, 96vw);
+      background: var(--card);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.10);
+      position: relative;
+      overflow: hidden;
+    }
+    .certificate::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--brand), color-mix(in srgb, var(--brand) 60%, #60a5fa), var(--brand));
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 24px 10px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #fff, #fafcff 60%, transparent);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+    .brand img { height: 28px; width: auto; display: block; }
+    .verified {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--brand) 8%, #e2e8f0);
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--brand) 14%, #e2e8f0);
+    }
+    .wrap {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 20px;
+      padding: 24px;
+    }
+    .badge-art {
+      display: grid;
+      place-items: center;
+      padding: 16px;
+      border-radius: 12px;
+      background: linear-gradient(180deg, #fff, #f8fafc);
+      border: 1px solid var(--border);
+    }
+    .badge-art img {
+      width: 140px;
+      height: 140px;
+      object-fit: contain;
+      filter: drop-shadow(0 12px 24px rgba(15, 23, 42, 0.15));
+    }
+    .content {
+      display: grid;
+      gap: 2px;
+    }
+    h1 {
+      margin: 6px 0 8px;
+      font-size: clamp(22px, 2.6vw, 30px);
+      font-weight: 700;
+    }
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .meta .item { display: inline-flex; align-items: center; gap: 8px; }
+    .meta .dot { width: 6px; height: 6px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 3px var(--ring); }
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      color: var(--text);
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+    @media (max-width: 640px) { .wrap { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <section class="certificate" role="region" aria-label="Badge certificate">
+      <header>
+        <div class="brand">
+          {% if site_logo %}
+            <img src="{{ site_logo }}" alt="{{ site_name }} logo" />
+          {% endif %}
+        </div>
+        <span class="verified" title="This page verifies an issued badge">✅ Verified Badge</span>
+      </header>
+
+      <div class="wrap">
+        <div class="badge-art">
+          {% if badge.image %}
+            <img src="{{ badge.image }}" alt="{{ badge.name }} badge" />
+          {% else %}
+            <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M12 2l2.39 4.84 5.34.78-3.86 3.76.91 5.31L12 14.77 6.22 16.69l.91-5.31L3.27 7.62l5.34-.78L12 2z" stroke="#06b6d4" stroke-width="1.2"/>
+            </svg>
+          {% endif %}
+        </div>
+        <div class="content">
+          <div class="subtitle">Certificate of Achievement</div>
+          <h1>{{ username }} has been awarded the {{ badge.name }} badge</h1>
+          {% if badge.description %}
+            <p class="subtitle">{{ badge.description }}</p>
+          {% endif %}
+
+          <div class="meta">
+            <div class="item"><span class="dot"></span> Issued on {{ issued_at|date:"F j, Y, g:i a" }}</div>
+            <div class="item"><span class="dot"></span> Issuer: {{ site_name }}</div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+  <div>Share this page to verify the award publicly.</div>
+        <div class="code" aria-label="Verification code">{{ verification_code }}</div>
+      </footer>
+    </section>
+  </div>
+</body>
+</html>
