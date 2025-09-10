@@ -43,7 +43,7 @@ class UserBadge(models.Model):
     user = models.CharField(max_length=255)
     badge = models.ForeignKey(Badge, on_delete=models.CASCADE, related_name='awarded_users')
     issued_at = models.DateTimeField(default=timezone.now)
-    verification_code = models.CharField(max_length=64, unique=True)
+    verification_code = models.CharField(max_length=10, unique=True)
 
     class Meta:
         unique_together = ('user', 'badge')

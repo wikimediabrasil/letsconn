@@ -6,6 +6,8 @@ import requests
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
+import random
+import string
 
 # Third-party imports
 import jwt
@@ -283,7 +285,7 @@ def badge_verification_view(request, verification_code: str):
         'username': userbadge.user,
         'badge': userbadge.badge,
         'issued_at': userbadge.issued_at,
-        'verification_code': userbadge.verification_code,
+        'verification_code': userbadge.verification_code[-10:] if len(userbadge.verification_code) > 10 else userbadge.verification_code,
         'site_name': "Let's Connect",
         'site_logo': "https://upload.wikimedia.org/wikipedia/commons/4/4c/Let%27s_Connect_logo.svg",
         'brand_color': "#122d4c",
@@ -343,7 +345,13 @@ def badges_view(request):
                 if not Profile.objects.filter(username=username).exists():
                     # allow awarding even if profile not present, as UserBadge.user is CharField
                     pass
-                verification_code = hashlib.sha256(f"{badge.id}:{username}:{uuid.uuid4()}".encode()).hexdigest()[:64]
+                # Try to generate a unique verification_code
+                for _ in range(20):
+                    verification_code = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+                    if not UserBadge.objects.filter(verification_code=verification_code).exists():
+                        break
+                else:
+                    raise ValueError('Could not generate a unique verification code after 20 attempts.')
                 try:
                     UserBadge.objects.create(user=username, badge=badge, verification_code=verification_code)
                     message = f"Granted '{badge.name}' to {username}."
