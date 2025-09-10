@@ -3,6 +3,13 @@
 from django.db import migrations, models
 
 
+def slice_verification_code(apps, schema_editor):
+    userbadge = apps.get_model('enrollments', 'UserBadge')
+    for badge in userbadge.objects.all():
+        badge.verification_code = badge.verification_code[-10:]
+        badge.save()
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -11,9 +18,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunPython(
-            lambda apps, schema_editor: apps.get_model('enrollments', 'UserBadge').objects.all().update(
-                verification_code=models.F('verification_code')[54:]
-            ),
+            slice_verification_code,
             reverse_code=migrations.RunPython.noop
         ),
         migrations.AlterField(
