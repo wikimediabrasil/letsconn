@@ -241,6 +241,9 @@ def exist_view(request):
     # Normalize: replace + and %20 with spaces
     username_norm = username.replace('+', ' ').replace('%20', ' ').replace('_', ' ')
     exists = Profile.objects.filter(username=username_norm).exists()
+    # Also, check in Enrollment as a fallback
+    if not exists:
+        exists = Enrollment.objects.filter(user=username_norm).exists()
     return JsonResponse({'exists': exists})
 
 
