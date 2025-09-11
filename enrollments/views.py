@@ -238,7 +238,9 @@ def exist_view(request):
     if not username:
         return JsonResponse({'error': 'Username parameter is required'}, status=400)
 
-    exists = Profile.objects.filter(username=username).exists()
+    # Normalize: replace + and %20 with spaces
+    username_norm = username.replace('+', ' ').replace('%20', ' ').replace('_', ' ')
+    exists = Profile.objects.filter(username=username_norm).exists()
     return JsonResponse({'exists': exists})
 
 
