@@ -24,9 +24,7 @@
                 max-height: 70vh;
                 overflow-y: auto;
                 background-color: #fff;
-                border-radius: 10px;
                 box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-                padding: 20px;
             }
             .button-container {
                 display: flex;
@@ -59,29 +57,27 @@
                 background-color: #5a32a3;
             }
         </style>
-        <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables/1.10.21/css/jquery.dataTables.min.css" />
-        <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons-dt/2.3.6/buttons.dataTables.min.css" />
-        <link rel="stylesheet" href="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-responsive-dt/2.4.1/responsive.dataTables.min.css" />
-        <script 
-            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/jquery/3.7.0/jquery.min.js" 
-            integrity="sha384-NXgwF8Kv9SSAr+jemKKcbvQsz+teULH/a5UNJvZc6kP47hZgl62M1vGnw6gHQhb1" 
-            crossorigin="anonymous"></script>
-        <script 
-            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net/2.1.1/jquery.dataTables.min.js" 
-            integrity="sha384-FL5V3MGBdvjK1/lXuDlPXHHDAjM6lXTKHQH1rBXPSF63sIN2p6/49GfrqXI9N/t7" 
-            crossorigin="anonymous"></script>
-        <script 
-            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-responsive/2.4.1/dataTables.responsive.min.js" 
-            integrity="sha384-iQC83CKNYyann9W2gqpKB/p3aitJrLa4MIcxGclC61mNprEqXuheYiCE7JSJnRO9" 
-            crossorigin="anonymous"></script>
-        <script 
-            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons/2.3.6/js/dataTables.buttons.min.js" 
-            integrity="sha384-jbU1hH+4p38WsOp+7JWEb6ztIpXa7u9npGVDNGEj4w9AUujc3X2E4aTDZ+xo1PgU" 
-            crossorigin="anonymous"></script>
-        <script 
-            src="https://tools-static.wmflabs.org/cdnjs/ajax/libs/datatables.net-buttons/2.3.6/js/buttons.colVis.min.js" 
-            integrity="sha384-h/SRPFzc2+BE+XfOqlAqiHb43fnY8jzXhQ0fI1JBfgrjbxUokMr9To2eLbSWEt1g" 
-            crossorigin="anonymous"></script>
+        <style>
+            /* Basic table styles and sort indicators */
+            table { border-collapse: collapse; width: 100%; }
+            th, td { border: 1px solid #ddd; padding: 8px; }
+            th { cursor: pointer; position: sticky; top: 0; background: #fafafa; }
+            th.sort-asc::after { content: " \25B2"; }
+            th.sort-desc::after { content: " \25BC"; }
+            #filterInput { width: 300px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+            /* Hide extra columns until user data is loaded */
+            #myTable .extra-col { display: none; }
+            #myTable.show-extra .extra-col { display: table-cell; }
+
+            /* Column visibility */
+            .hidden-cell { display: none !important; }
+            .column-panel { display: none; width: 80%; max-width: 1000px; background: #fff; border: 1px solid #ddd; border-radius: 8px; padding: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 15px; }
+            .column-panel.show { display: block; }
+            .column-list { column-width: 240px; column-gap: 16px; max-height: 40vh; overflow: auto; }
+            .column-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+            .column-actions button, .column-actions label { margin: 4px 0; }
+        </style>
         <style>
             .loader {
                 border: 16px solid #f3f3f3;
@@ -91,6 +87,7 @@
                 height: 120px;
                 margin: auto;
                 animation: spin 2s linear infinite;
+                display: none;
             }
         
             @keyframes spin {
@@ -98,10 +95,7 @@
                 100% { transform: rotate(360deg); }
             }
         
-            #myTable {
-                display: none;
-                font-size: small;
-            }
+            #myTable { font-size: small; }
         </style>
     </head>
     <body>
@@ -111,9 +105,22 @@
             <button onclick="window.location.href='/'">Home</button>
             <button class="load" id="loadUserDataBtn">Load User Data</button>
         </div>
+        <div class="button-container">
+            <input id="filterInput" type="text" placeholder="Type to filter rows..." />
+            <button id="toggleColumnPanel">Columns</button>
+            <button id="fitToScreenBtn">Fit to screen</button>
+        </div>
+        <div id="columnPanel" class="column-panel">
+            <div class="column-actions">
+                <button id="showAllCols" type="button">Show all</button>
+                <button id="hideAllCols" type="button">Hide all</button>
+                <label><input type="checkbox" id="autoFitOnLoad" /> Auto-fit on load</label>
+            </div>
+            <div id="columnList" class="column-list"></div>
+        </div>
         <div class="loader" id="loader"></div>
         <div class="table-container">
-            <table id="myTable" class="display responsive" style="width:80%">
+            <table id="myTable" class="display responsive" style="width:100%">
                 <thead>
                     <tr>
                         {% with all_keys=all_enrollment_keys %}
@@ -122,19 +129,19 @@
                             {% endfor %}
                         {% endwith %}
                         <th>Enrollment time</th>
-                        <th>Territory</th>
-                        <th>Affiliation</th>
-                        <th>Language</th>
-                        <th>Manager</th>
-                        <th>Alternative Wikimedia account</th>
-                        <th>Wikimedia projects</th>
-                        <th>Available capacities</th>
-                        <th>Known capacities</th>
-                        <th>Wanted capacities</th>
-                        <th>Badges</th>
-                        <th>Joined Date</th>
-                        <th>Last Update</th>
-                        <th>Last Login</th>
+                        <th class="extra-col">Territory</th>
+                        <th class="extra-col">Affiliation</th>
+                        <th class="extra-col">Language</th>
+                        <th class="extra-col">Manager</th>
+                        <th class="extra-col">Alternative Wikimedia account</th>
+                        <th class="extra-col">Wikimedia projects</th>
+                        <th class="extra-col">Available capacities</th>
+                        <th class="extra-col">Known capacities</th>
+                        <th class="extra-col">Wanted capacities</th>
+                        <th class="extra-col">Badges</th>
+                        <th class="extra-col">Joined Date</th>
+                        <th class="extra-col">Last Update</th>
+                        <th class="extra-col">Last Login</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -146,19 +153,19 @@
                                 {% endfor %}
                             {% endwith %}
                             <td>{{ enrollment.timestamp }}</td>
-                            <td class="territory"></td>
-                            <td class="affiliation"></td>
-                            <td class="language"></td>
-                            <td class="manager"></td>
-                            <td class="alternative-wikimedia-account"></td>
-                            <td class="wikimedia-projects"></td>
-                            <td class="available-capacities"></td>
-                            <td class="known-capacities"></td>
-                            <td class="wanted-capacities"></td>
-                            <td class="badges"></td>
-                            <td class="joined-date"></td>
-                            <td class="last-update"></td>
-                            <td class="last-login"></td>
+                            <td class="territory extra-col"></td>
+                            <td class="affiliation extra-col"></td>
+                            <td class="language extra-col"></td>
+                            <td class="manager extra-col"></td>
+                            <td class="alternative-wikimedia-account extra-col"></td>
+                            <td class="wikimedia-projects extra-col"></td>
+                            <td class="available-capacities extra-col"></td>
+                            <td class="known-capacities extra-col"></td>
+                            <td class="wanted-capacities extra-col"></td>
+                            <td class="badges extra-col"></td>
+                            <td class="joined-date extra-col"></td>
+                            <td class="last-update extra-col"></td>
+                            <td class="last-login extra-col"></td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -166,8 +173,7 @@
         </div>
         <div class="status" id="status"></div>
         <script type="text/javascript">
-            let table;
-
+            // Utilities
             function getCookie(name) {
                 let cookieValue = null;
                 if (document.cookie && document.cookie !== '') {
@@ -184,44 +190,99 @@
             }
 
             const csrftoken = getCookie('csrftoken');
-            const serverName = window.location.origin; // Dynamically get the server name
+            const serverName = window.location.origin;
 
-            $(document).ready(function() {
-                // Initialize the DataTable and assign it to the global variable
-                table = $('#myTable').DataTable({
-                    responsive: true,
-                    scrollY: '50vh',
-                    scrollCollapse: true,
-                    columnDefs: [
-                        {
-                            targets: "_all",
-                            className: 'dt-body-center',
-                        }
-                    ]
+            document.addEventListener('DOMContentLoaded', function() {
+                const table = document.getElementById('myTable');
+                const thead = table.tHead;
+                const tbody = table.tBodies[0];
+                const loader = document.getElementById('loader');
+                const statusBox = document.getElementById('status');
+                const filterInput = document.getElementById('filterInput');
+                const columnPanel = document.getElementById('columnPanel');
+                const toggleColumnPanelBtn = document.getElementById('toggleColumnPanel');
+                const columnList = document.getElementById('columnList');
+                const showAllColsBtn = document.getElementById('showAllCols');
+                const hideAllColsBtn = document.getElementById('hideAllCols');
+                const fitToScreenBtn = document.getElementById('fitToScreenBtn');
+                const autoFitOnLoad = document.getElementById('autoFitOnLoad');
+
+                // Sort helpers
+                function getCellSortValue(cell) {
+                    const ds = cell.getAttribute('data-sort');
+                    if (ds !== null) {
+                        const n = Number(ds);
+                        return isNaN(n) ? ds : n;
+                    }
+                    const txt = cell.textContent.trim();
+                    const num = Number(txt.replace(/,/g, ''));
+                    if (!isNaN(num) && txt !== '') return num;
+                    const dt = Date.parse(txt);
+                    if (!isNaN(dt)) return dt;
+                    return txt.toLowerCase();
+                }
+
+                function clearSortIndicators() {
+                    Array.from(thead.rows[0].cells).forEach(th => {
+                        th.classList.remove('sort-asc', 'sort-desc');
+                    });
+                }
+
+                function sortTableByColumn(index, asc = true) {
+                    const rows = Array.from(tbody.rows);
+                    rows.sort((a, b) => {
+                        const av = getCellSortValue(a.cells[index] || { textContent: '' });
+                        const bv = getCellSortValue(b.cells[index] || { textContent: '' });
+                        if (av < bv) return asc ? -1 : 1;
+                        if (av > bv) return asc ? 1 : -1;
+                        return 0;
+                    });
+                    rows.forEach(r => tbody.appendChild(r));
+                }
+
+                // Attach click sort on headers
+                Array.from(thead.rows[0].cells).forEach((th, idx) => {
+                    th.addEventListener('click', () => {
+                        const asc = !th.classList.contains('sort-asc');
+                        clearSortIndicators();
+                        sortTableByColumn(idx, asc);
+                        th.classList.add(asc ? 'sort-asc' : 'sort-desc');
+                    });
                 });
 
-                const extraColumns = 13;
-                const hiddenColumns = Array.from({ length: extraColumns }, (_, i) => table.columns().count() - (extraColumns - i));
-                table.columns(hiddenColumns).visible(false);
+                // Filter by text across all cells
+                function filterRows(query) {
+                    const q = query.toLowerCase();
+                    Array.from(tbody.rows).forEach(tr => {
+                        const text = Array.from(tr.cells).map(td => td.textContent).join(' ').toLowerCase();
+                        tr.style.display = text.includes(q) ? '' : 'none';
+                    });
+                }
+                filterInput.addEventListener('input', (e) => filterRows(e.target.value));
 
-                $('#loader').hide();
-                $('#myTable').show();
-
-                // Function to fetch list data from the API
+                // Helper to fetch lists
                 async function fetchList(type) {
                     const response = await fetch(`${serverName}/proxy/?item=${type}`);
                     return response.json();
                 }
 
-                $('#loadUserDataBtn').on('click', async function() {
-                    $('#loader').show();
-                    $('#status').html('<div style="text-align:center;">Starting user data fetch...</div>');
-                    $('.table-container').hide();
-                    table.columns(hiddenColumns).visible(true);
+                // Determine username column index (prefer header "username")
+                function findUsernameColIndex() {
+                    const headers = Array.from(thead.rows[0].cells).map(th => th.textContent.trim().toLowerCase());
+                    let idx = headers.findIndex(h => h === 'username' || h.includes('user name'));
+                    if (idx === -1) idx = 0; // fallback to first column
+                    return idx;
+                }
+
+                document.getElementById('loadUserDataBtn').addEventListener('click', async () => {
+                    loader.style.display = 'block';
+                    statusBox.innerHTML = '<div style="text-align:center;">Starting user data fetch...</div>';
+                    document.querySelector('.table-container').style.display = 'none';
 
                     const userCache = {};
-                    const usernamesSet = table.column(0).data().toArray();
-                    const usernames = [...new Set(usernamesSet.filter(username => username.trim() !== ''))];
+                    const usernameIdx = findUsernameColIndex();
+                    const usernamesSet = Array.from(tbody.rows).map(r => (r.cells[usernameIdx]?.textContent || '').trim());
+                    const usernames = [...new Set(usernamesSet.filter(u => u !== ''))];
 
                     // Fetch all valid users first
                     const validUsersResp = await fetch(`${serverName}/proxy/?item=users`);
@@ -229,29 +290,31 @@
                     const validUsernames = new Set(Object.values(validUsersData));
                     const filteredUsernames = usernames.filter(u => validUsernames.has(u));
 
-                    const territoryData = await fetchList('territory');
-                    const affiliationData = await fetchList('affiliation');
-                    const wikimediaProjectsData = await fetchList('wikimedia_project');
-                    const capacityData = await fetchList('skills');
-                    const badgesData = await fetchList('badges');
-                    const languageData = await fetchList('language');
+                    const [territoryData, affiliationData, wikimediaProjectsData, capacityData, badgesData, languageData] = await Promise.all([
+                        fetchList('territory'),
+                        fetchList('affiliation'),
+                        fetchList('wikimedia_project'),
+                        fetchList('skills'),
+                        fetchList('badges'),
+                        fetchList('language')
+                    ]);
 
-                    function getTerritoryNames(user, territoryData) {
+                    function getTerritoryNames(user) {
                         return (user.territory || []).map(id => territoryData[id] || 'Unknown').join(', ');
                     }
-                    function getAffiliationNames(user, affiliationData) {
+                    function getAffiliationNames(user) {
                         return (user.affiliation || []).map(id => affiliationData[id] || 'Unknown').join(', ');
                     }
-                    function getManagerNames(user, affiliationData) {
+                    function getManagerNames(user) {
                         return (user.is_manager || []).map(id => affiliationData[id] || 'Unknown').join(', ');
                     }
-                    function getWikimediaProjectNames(user, wikimediaProjectsData) {
+                    function getWikimediaProjectNames(user) {
                         return (user.wikimedia_projects || []).map(id => wikimediaProjectsData[id] || 'Unknown').join(', ');
                     }
-                    function getBadgesNames(user, badgesData) {
+                    function getBadgesNames(user) {
                         return (user.badges || []).map(id => badgesData[id] || 'Unknown').join(', ');
                     }
-                    function getLanguageNames(user, languageData) {
+                    function getLanguageNames(user) {
                         return (user.language || []).map(lang => {
                             const name = languageData[lang.id] || 'Unknown';
                             return `${name} (${lang.proficiency || '?'})`;
@@ -259,24 +322,23 @@
                     }
 
                     const allCapacityQIDs = new Set();
-                    function getWantedCapacities(user, capacityData) {
+                    function getWantedCapacities(user) {
                         const qids = user.skills_wanted || [];
                         qids.forEach(id => allCapacityQIDs.add(capacityData[id]));
                         return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
-                    function getAvailableCapacities(user, capacityData) {
+                    function getAvailableCapacities(user) {
                         const qids = user.skills_available || [];
                         qids.forEach(id => allCapacityQIDs.add(capacityData[id]));
                         return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
-                    function getKnownCapacities(user, capacityData) {
+                    function getKnownCapacities(user) {
                         const qids = user.skills_known || [];
                         qids.forEach(id => allCapacityQIDs.add(capacityData[id]));
                         return qids.map(id => capacityData[id] || 'Unknown').join(', ');
                     }
 
                     function changeQidToName(qid) {
-                        // Split the QIDs by comma and map each QID to its name
                         if (!qid) return 'Unknown';
                         let qidNames = [];
                         const qids = qid.split(',').map(q => q.trim());
@@ -287,163 +349,307 @@
                         return qidNames.join(', ');
                     }
 
-                    // Sequentially fetch user data with progress message
                     for (let i = 0; i < filteredUsernames.length; i++) {
                         const username = filteredUsernames[i];
-                        $('#status').html(`<div style="text-align:center;">Getting data from user ${i + 1} of ${filteredUsernames.length}<br><b>${username}</b></div>`);
+                        statusBox.innerHTML = `<div style="text-align:center;">Getting data from user ${i + 1} of ${filteredUsernames.length}<br><b>${username}</b></div>`;
                         try {
-                            const response = await fetch(`${serverName}/proxy/?query=user__username=${username}`);
+                            const response = await fetch(`${serverName}/proxy/?query=user__username=${encodeURIComponent(username)}`);
                             const data = await response.json();
                             if (data.results && data.results.length > 0) {
                                 const user = data.results[0];
-                                const joinedDate = new Date(user.user.date_joined).toLocaleString();
-                                const lastUpdate = new Date(user.last_update).toLocaleString();
-                                const lastLogin = new Date(user.last_login).toLocaleString();
-                                const territoryNames = getTerritoryNames(user, territoryData);
-                                const affiliationNames = getAffiliationNames(user, affiliationData);
-                                const managerNames = getManagerNames(user, affiliationData);
-                                const wikimediaProjectNames = getWikimediaProjectNames(user, wikimediaProjectsData);
-                                const wantedCapacitiesNames = getWantedCapacities(user, capacityData);
-                                const availableCapacitiesNames = getAvailableCapacities(user, capacityData);
-                                const knownCapacitiesNames = getKnownCapacities(user, capacityData);
-                                const badgesNames = getBadgesNames(user, badgesData);
-                                const languageNames = getLanguageNames(user, languageData);
-                                userCache[username] = { 
-                                    joinedDate, 
-                                    lastUpdate, 
-                                    lastLogin, 
-                                    territory: territoryNames, 
-                                    affiliation: affiliationNames, 
-                                    manager: managerNames, 
-                                    language: languageNames, 
-                                    wikimediaProjects: wikimediaProjectNames, 
-                                    wantedCapacities: wantedCapacitiesNames, 
-                                    availableCapacities: availableCapacitiesNames, 
-                                    knownCapacities: knownCapacitiesNames, 
-                                    badges: badgesNames 
+                                const joinedDate = new Date(user.user.date_joined);
+                                const lastUpdate = new Date(user.last_update);
+                                const lastLogin = new Date(user.last_login);
+                                userCache[username] = {
+                                    joinedDateText: joinedDate.toLocaleString(),
+                                    lastUpdateText: lastUpdate.toLocaleString(),
+                                    lastLoginText: lastLogin.toLocaleString(),
+                                    joinedDateTs: joinedDate.getTime(),
+                                    lastUpdateTs: lastUpdate.getTime(),
+                                    lastLoginTs: lastLogin.getTime(),
+                                    territory: getTerritoryNames(user),
+                                    affiliation: getAffiliationNames(user),
+                                    manager: getManagerNames(user),
+                                    language: getLanguageNames(user),
+                                    wikimediaProjects: getWikimediaProjectNames(user),
+                                    wantedCapacities: getWantedCapacities(user),
+                                    availableCapacities: getAvailableCapacities(user),
+                                    knownCapacities: getKnownCapacities(user),
+                                    badges: getBadgesNames(user)
                                 };
                             } else {
-                                userCache[username] = { 
-                                    joinedDate: '', 
-                                    lastUpdate: '', 
-                                    lastLogin: '', 
-                                    territory: '', 
-                                    affiliation: '', 
-                                    manager: '', 
-                                    language: '', 
-                                    wikimediaProjects: '', 
-                                    wantedCapacities: '', 
-                                    availableCapacities: '', 
-                                    knownCapacities: '', 
-                                    badges: '' 
+                                userCache[username] = {
+                                    joinedDateText: '', lastUpdateText: '', lastLoginText: '',
+                                    joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '',
+                                    territory: '', affiliation: '', manager: '', language: '', wikimediaProjects: '',
+                                    wantedCapacities: '', availableCapacities: '', knownCapacities: '', badges: ''
                                 };
                             }
                         } catch (error) {
                             console.error(`Error fetching data for ${username}:`, error);
-                            userCache[username] = { 
-                                joinedDate: '', 
-                                lastUpdate: '', 
-                                lastLogin: '', 
-                                territory: '', 
-                                affiliation: '', 
-                                manager: '', 
-                                language: '', 
-                                wikimediaProjects: '', 
-                                wantedCapacities: '', 
-                                availableCapacities: '', 
-                                knownCapacities: '', 
-                                badges: '' 
+                            userCache[username] = {
+                                joinedDateText: '', lastUpdateText: '', lastLoginText: '',
+                                joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '',
+                                territory: '', affiliation: '', manager: '', language: '', wikimediaProjects: '',
+                                wantedCapacities: '', availableCapacities: '', knownCapacities: '', badges: ''
                             };
                         }
-                        $('#status').html('');
                     }
+                    statusBox.innerHTML = '';
 
                     // Convert all QIDs to real names via POST request
                     const qidArray = Array.from(allCapacityQIDs);
-                    const qidResponse = await fetch(`${serverName}/proxy/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRFToken': csrftoken
-                        },
-                        body: JSON.stringify({ qids: qidArray })
-                    });
+                    if (qidArray.length) {
+                        const qidResponse = await fetch(`${serverName}/proxy/`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrftoken
+                            },
+                            body: JSON.stringify({ qids: qidArray })
+                        });
+                        const qidData = await qidResponse.json();
+                        qidArray.forEach(qid => {
+                            const matchingItem = qidData.find(item => item.wd_code === qid);
+                            if (matchingItem) {
+                                capacityData[qid] = matchingItem.name;
+                            }
+                        });
+                    }
 
-                    const qidData = await qidResponse.json();
-
-                    // Update capacityData with real names
-                    qidArray.forEach(qid => {
-                        const matchingItem = qidData.find(item => item.wd_code === qid);
-                        if (matchingItem) {
-                            capacityData[qid] = matchingItem.name;
-                        }
-                    });
-
-                    // Update all rows with the fetched data, using DataTables API
-                    table.rows().every(function(rowIdx, tableLoop, rowLoop) {
-                        const data = this.data();
-                        const username = data[0]; // Assuming the username is in the first column
-                        const userData = userCache[username] || { 
-                            joinedDate: '', 
-                            lastUpdate: '', 
-                            lastLogin: '', 
-                            territory: '', 
-                            affiliation: '', 
-                            manager: '', 
-                            language: '', 
-                            wikimediaProjects: '', 
-                            wantedCapacities: '', 
-                            availableCapacities: '', 
-                            knownCapacities: '', 
-                            badges: '' 
+                    // Update DOM rows
+                    Array.from(tbody.rows).forEach(tr => {
+                        const username = (tr.cells[usernameIdx]?.textContent || '').trim();
+                        const userData = userCache[username] || {
+                            joinedDateText: '', lastUpdateText: '', lastLoginText: '',
+                            joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '',
+                            territory: '', affiliation: '', manager: '', language: '', wikimediaProjects: '',
+                            wantedCapacities: '', availableCapacities: '', knownCapacities: '', badges: ''
                         };
-                        this.node().querySelector('.joined-date').innerText = userData.joinedDate;
-                        this.node().querySelector('.last-update').innerText = userData.lastUpdate;
-                        this.node().querySelector('.last-login').innerText = userData.lastLogin;
-                        this.node().querySelector('.territory').innerText = userData.territory;
-                        this.node().querySelector('.affiliation').innerText = userData.affiliation;
-                        this.node().querySelector('.language').innerText = userData.language;
-                        this.node().querySelector('.manager').innerText = userData.manager;
-                        this.node().querySelector('.wikimedia-projects').innerText = userData.wikimediaProjects;
-                        this.node().querySelector('.wanted-capacities').innerText = changeQidToName(userData.wantedCapacities);
-                        this.node().querySelector('.available-capacities').innerText = changeQidToName(userData.availableCapacities);
-                        this.node().querySelector('.known-capacities').innerText = changeQidToName(userData.knownCapacities);
-                        this.node().querySelector('.badges').innerText = userData.badges;
-                        this.invalidate();
+                        const setCell = (selector, text, sortVal) => {
+                            const cell = tr.querySelector(selector);
+                            if (cell) {
+                                cell.textContent = text || '';
+                                if (sortVal !== undefined && sortVal !== null && sortVal !== '') {
+                                    cell.setAttribute('data-sort', String(sortVal));
+                                }
+                            }
+                        };
+                        setCell('.joined-date', userData.joinedDateText, userData.joinedDateTs);
+                        setCell('.last-update', userData.lastUpdateText, userData.lastUpdateTs);
+                        setCell('.last-login', userData.lastLoginText, userData.lastLoginTs);
+                        setCell('.territory', userData.territory);
+                        setCell('.affiliation', userData.affiliation);
+                        setCell('.language', userData.language);
+                        setCell('.manager', userData.manager);
+                        setCell('.wikimedia-projects', userData.wikimediaProjects);
+                        setCell('.wanted-capacities', changeQidToName(userData.wantedCapacities));
+                        setCell('.available-capacities', changeQidToName(userData.availableCapacities));
+                        setCell('.known-capacities', changeQidToName(userData.knownCapacities));
+                        setCell('.badges', userData.badges);
                     });
 
-                    table.draw();
-                    // Show extra columns
-                    $('#loader').hide();
-                    $('.table-container').show();
-                    table.columns.adjust();
-                    table.responsive.recalc();
-                    table.columns.adjust();
+                    // Show table and reveal extra columns
+                    loader.style.display = 'none';
+                    document.querySelector('.table-container').style.display = 'block';
+                    table.classList.add('show-extra');
+                        afterRevealExtraColumns();
                 });
 
-                $('#downloadCsvBtn').on('click', function() {
+                // CSV download (no DataTables)
+                document.getElementById('downloadCsvBtn').addEventListener('click', function() {
                     const rows = [];
-                    rows.push(["SEP=,"]); // Add a separator line for CSV
-
-                    const headers = table.columns().header().toArray().map(header => `"${$(header).text().trim().replace(/"/g, '""')}"`);
+                    rows.push(['SEP=,']);
+                    const visibleIdx = visibleColumnIndexes();
+                    const headers = visibleIdx.map(i => thead.rows[0].cells[i]).map(th => `"${th.textContent.trim().replace(/"/g, '""')}"`);
                     rows.push(headers);
-
-                    table.rows().every(function() {
-                        const rowData = this.data();
-                        rows.push(rowData.map(cell => `"${(cell ? cell.toString().trim().replace(/"/g, '""') : '')}"`));
+                    Array.from(tbody.rows).forEach(tr => {
+                        const cols = visibleIdx.map(i => tr.cells[i]).map(td => `"${(td && td.textContent ? td.textContent.trim().replace(/"/g, '""') : '')}"`);
+                        rows.push(cols);
                     });
-
-                    const csvContent = rows.map(e => e.join(",")).join("\n");
+                    const csvContent = rows.map(r => r.join(',')).join('\n');
                     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const link = document.createElement("a");
+                    const link = document.createElement('a');
                     const url = URL.createObjectURL(blob);
-                    link.setAttribute("href", url);
-                    link.setAttribute("download", "enrollment_data.csv");
-                    link.style.visibility = "hidden";
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', 'enrollment_data.csv');
+                    link.style.visibility = 'hidden';
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                 });
+
+                // ----- Column visibility management -----
+                const LS_KEY = 'enrollments_visible_columns_v1';
+
+                function allColumnHeaders() {
+                    return Array.from(thead.rows[0].cells).map((th, idx) => ({
+                        idx,
+                        title: th.textContent.trim(),
+                    }));
+                }
+
+                function applyVisibilityFromState(state) {
+                    const headers = thead.rows[0].cells;
+                    const rows = Array.from(tbody.rows);
+                    state.forEach((visible, idx) => {
+                        const show = !!visible;
+                        const th = headers[idx];
+                        if (!th) return;
+                        th.classList.toggle('hidden-cell', !show);
+                        rows.forEach(tr => {
+                            const td = tr.cells[idx];
+                            if (td) td.classList.toggle('hidden-cell', !show);
+                        });
+                    });
+                }
+
+                function visibleColumnIndexes() {
+                    const headers = thead.rows[0].cells;
+                    return Array.from(headers).reduce((acc, th, idx) => {
+                        if (!th.classList.contains('hidden-cell')) acc.push(idx);
+                        return acc;
+                    }, []);
+                }
+
+                function buildColumnPanel(state) {
+                    columnList.innerHTML = '';
+                    const headers = allColumnHeaders();
+                    headers.forEach(h => {
+                        const id = `col-vis-${h.idx}`;
+                        const wrapper = document.createElement('div');
+                        const cb = document.createElement('input');
+                        cb.type = 'checkbox';
+                        cb.id = id;
+                        cb.checked = state[h.idx] !== false; // default visible unless explicitly false
+                        cb.addEventListener('change', () => {
+                            state[h.idx] = cb.checked;
+                            saveState(state);
+                            applyVisibilityFromState(state);
+                        });
+                        const label = document.createElement('label');
+                        label.setAttribute('for', id);
+                        label.textContent = h.title || `Column ${h.idx + 1}`;
+                        wrapper.appendChild(cb);
+                        wrapper.appendChild(label);
+                        columnList.appendChild(wrapper);
+                    });
+                }
+
+                function saveState(state) {
+                    localStorage.setItem(LS_KEY, JSON.stringify({
+                        visible: state,
+                        autoFit: !!autoFitOnLoad.checked
+                    }));
+                }
+
+                function loadState() {
+                    try {
+                        const raw = localStorage.getItem(LS_KEY);
+                        if (!raw) return null;
+                        const parsed = JSON.parse(raw);
+                        if (!Array.isArray(parsed.visible)) return null;
+                        autoFitOnLoad.checked = !!parsed.autoFit;
+                        return parsed.visible;
+                    } catch (e) {
+                        console.warn('Failed to parse visibility state', e);
+                        return null;
+                    }
+                }
+
+                function defaultVisibilityState() {
+                    // Show as many columns as fit initially (heuristic: at least 5, prefer 10 or fewer)
+                    const count = thead.rows[0].cells.length;
+                    const base = new Array(count).fill(true);
+                    // Hide the extra columns by default until user data loads, consistent with existing classes
+                    Array.from(thead.rows[0].cells).forEach((th, idx) => {
+                        if (th.classList.contains('extra-col')) base[idx] = false;
+                    });
+                    return base;
+                }
+
+                // Initialize state
+                let visState = loadState() || defaultVisibilityState();
+                applyVisibilityFromState(visState);
+                buildColumnPanel(visState);
+
+                toggleColumnPanelBtn.addEventListener('click', () => {
+                    columnPanel.classList.toggle('show');
+                });
+                showAllColsBtn.addEventListener('click', () => {
+                    visState = new Array(thead.rows[0].cells.length).fill(true);
+                    saveState(visState);
+                    applyVisibilityFromState(visState);
+                    buildColumnPanel(visState);
+                });
+                hideAllColsBtn.addEventListener('click', () => {
+                    // Keep at least first column visible for context
+                    visState = new Array(thead.rows[0].cells.length).fill(false);
+                    visState[0] = true;
+                    saveState(visState);
+                    applyVisibilityFromState(visState);
+                    buildColumnPanel(visState);
+                });
+                autoFitOnLoad.addEventListener('change', () => saveState(visState));
+
+                // Auto-fit algorithm: measure table width and hide columns from the end until it fits
+                function autoFitColumns(preferKeep = []) {
+                    // Reset to state visibility first
+                    applyVisibilityFromState(visState);
+
+                    const container = document.querySelector('.table-container');
+                    const maxWidth = container.clientWidth - 24; // padding allowance
+                    const headers = thead.rows[0].cells;
+
+                    const getWidth = () => table.scrollWidth;
+                    const fits = () => getWidth() <= maxWidth;
+
+                    // Determine candidate columns to hide (excluding preferKeep by index)
+                    const candidates = Array.from(headers).map((_, i) => i).filter(i => visState[i] !== false && !preferKeep.includes(i));
+
+                    // If already fits, nothing to do
+                    if (fits()) return;
+
+                    // Hide from the end first, then from the middle if needed
+                    const order = candidates.slice().reverse();
+                    for (const idx of order) {
+                        visState[idx] = false;
+                        applyVisibilityFromState(visState);
+                        if (fits()) break;
+                    }
+                    saveState(visState);
+                    buildColumnPanel(visState);
+                }
+
+                fitToScreenBtn.addEventListener('click', () => {
+                    // Keep first few columns visible if possible: username + key fields
+                    const keep = [0];
+                    autoFitColumns(keep);
+                });
+
+                window.addEventListener('resize', () => {
+                    if (autoFitOnLoad.checked) {
+                        // Re-apply vis state then auto-fit
+                        applyVisibilityFromState(visState);
+                        autoFitColumns([0]);
+                    }
+                });
+
+                // When user data is loaded and extra columns are shown, optionally auto-fit
+                function afterRevealExtraColumns() {
+                    // Update default vis state for newly revealed extra columns if state doesn't cover them
+                    const count = thead.rows[0].cells.length;
+                    if (visState.length < count) {
+                        const add = new Array(count - visState.length).fill(true);
+                        visState = visState.concat(add);
+                    }
+                    saveState(visState);
+                    applyVisibilityFromState(visState);
+                    buildColumnPanel(visState);
+                    if (autoFitOnLoad.checked) {
+                        autoFitColumns([0]);
+                    }
+                }
             });
         </script>
     </body>
