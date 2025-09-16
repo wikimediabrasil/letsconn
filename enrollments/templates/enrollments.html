@@ -129,6 +129,7 @@
                             {% endfor %}
                         {% endwith %}
                         <th>Enrollment time</th>
+                        <th class="extra-col">Import Status</th>
                         <th class="extra-col">Territory</th>
                         <th class="extra-col">Affiliation</th>
                         <th class="extra-col">Language</th>
@@ -153,6 +154,7 @@
                                 {% endfor %}
                             {% endwith %}
                             <td>{{ enrollment.timestamp }}</td>
+                            <td class="import extra-col"></td>
                             <td class="territory extra-col"></td>
                             <td class="affiliation extra-col"></td>
                             <td class="language extra-col"></td>
@@ -314,6 +316,9 @@
                     function getBadgesNames(user) {
                         return (user.badges || []).map(id => badgesData[id] || 'Unknown').join(', ');
                     }
+                    function getImportStatus(user) {
+                        return user.automated_lets_connect ? 'Imported' : '';
+                    }
                     function getLanguageNames(user) {
                         return (user.language || []).map(lang => {
                             const name = languageData[lang.id] || 'Unknown';
@@ -367,6 +372,7 @@
                                     joinedDateTs: joinedDate.getTime(),
                                     lastUpdateTs: lastUpdate.getTime(),
                                     lastLoginTs: lastLogin.getTime(),
+                                    import: getImportStatus(user),
                                     territory: getTerritoryNames(user),
                                     affiliation: getAffiliationNames(user),
                                     manager: getManagerNames(user),
@@ -380,7 +386,7 @@
                             } else {
                                 userCache[username] = {
                                     joinedDateText: '', lastUpdateText: '', lastLoginText: '',
-                                    joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '',
+                                    joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '', import: '',
                                     territory: '', affiliation: '', manager: '', language: '', wikimediaProjects: '',
                                     wantedCapacities: '', availableCapacities: '', knownCapacities: '', badges: ''
                                 };
@@ -389,7 +395,7 @@
                             console.error(`Error fetching data for ${username}:`, error);
                             userCache[username] = {
                                 joinedDateText: '', lastUpdateText: '', lastLoginText: '',
-                                joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '',
+                                joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '', import: '',
                                 territory: '', affiliation: '', manager: '', language: '', wikimediaProjects: '',
                                 wantedCapacities: '', availableCapacities: '', knownCapacities: '', badges: ''
                             };
@@ -422,7 +428,7 @@
                         const username = (tr.cells[usernameIdx]?.textContent || '').trim();
                         const userData = userCache[username] || {
                             joinedDateText: '', lastUpdateText: '', lastLoginText: '',
-                            joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '',
+                            joinedDateTs: '', lastUpdateTs: '', lastLoginTs: '', import: '',
                             territory: '', affiliation: '', manager: '', language: '', wikimediaProjects: '',
                             wantedCapacities: '', availableCapacities: '', knownCapacities: '', badges: ''
                         };
@@ -438,6 +444,7 @@
                         setCell('.joined-date', userData.joinedDateText, userData.joinedDateTs);
                         setCell('.last-update', userData.lastUpdateText, userData.lastUpdateTs);
                         setCell('.last-login', userData.lastLoginText, userData.lastLoginTs);
+                        setCell('.import', userData.import);
                         setCell('.territory', userData.territory);
                         setCell('.affiliation', userData.affiliation);
                         setCell('.language', userData.language);
